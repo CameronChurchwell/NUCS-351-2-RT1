@@ -1,0 +1,10 @@
+{
+    "include": [
+        "**/*.ts",
+        "node_modules/webgl-strict-types/index.d.ts"
+    ],
+    "compilerOptions": {
+        "outDir": "build",
+        "sourceMap": true
+    }
+}

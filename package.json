@@ -1,0 +1,30 @@
+{
+  "name": "churchwellcameron_activity2",
+  "version": "1.0.0",
+  "description": "particle system for class 351-2",
+  "main": "ChurchwellCameron3D.ts",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CameronChurchwell/NUCS-351-2-Activity-2.git"
+  },
+  "author": "Cameron Churchwell",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CameronChurchwell/NUCS-351-2-Activity-2/issues"
+  },
+  "homepage": "https://github.com/CameronChurchwell/NUCS-351-2-Activity-2#readme",
+  "devDependencies": {
+    "ts-loader": "^9.4.2",
+    "typescript": "^4.9.4",
+    "webgl-strict-types": "^1.0.5",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-glsl-loader": "^1.0.1"
+  }
+}
