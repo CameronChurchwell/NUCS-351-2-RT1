@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-    entry: './ChurchwellCameron_ProjA.ts',
+    entry: './ChurchwellCameron_RT1.ts',
     devtool: 'inline-source-map',
     module: {
         rules: [
@@ -20,7 +20,7 @@ module.exports = {
         extensions: ['.ts'],
     },
     output: {
-        filename: 'ChurchwellCameron_ProjA.js',
+        filename: 'build.js',
         path: path.resolve(__dirname, 'build'),
     },
 };
