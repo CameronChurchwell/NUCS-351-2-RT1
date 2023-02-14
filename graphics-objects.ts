@@ -9,6 +9,9 @@ let floatsPerVertex = 7;
 let gndVerts = makeGroundGrid();
 export let groundGraphicsObject = new GraphicsObject(gndVerts, 0x0001, floatsPerVertex); //lines
 
+let textureVerts = require('./vertex-objects/texture-vertices.json');
+export let textureGraphicsObject = new GraphicsObject(textureVerts, WebGL2RenderingContext.TRIANGLE_STRIP, 4);
+
 // let boxVerts = makeBox();
 // export let boxGraphicsObject = new GraphicsObject(boxVerts, 0x0002, floatsPerVertex);
 

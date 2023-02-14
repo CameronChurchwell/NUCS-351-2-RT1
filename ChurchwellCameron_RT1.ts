@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { groundGraphicsObject } from "./graphics-objects";
+import { groundGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -28,6 +28,8 @@ var g_last = Date.now();				//  Timestamp: set after each frame of animation
 
 var mvpMat = new Matrix4();
 var u_mvpMat_loc;
+var u_Texture_loc;
+var u_Sampler_loc;
 
 var gs: GraphicsSystem
 
@@ -43,7 +45,8 @@ function main() {
     }
 
     gs = new GraphicsSystem(gl, [
-        groundGraphicsObject
+        groundGraphicsObject,
+        textureGraphicsObject
     ]);
 
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
@@ -53,13 +56,32 @@ function main() {
     // Initialize shaders
     rasterizedShader.createInContext(gl);
     raytracedShader.createInContext(gl);
-    rasterizedShader.useWithContext(gl);
+    gs.initVertexBuffer();
 
-    var myVerts = initVertexBuffers(gl);
-    if (myVerts < 0) {
-        console.log('Failed to set the positions of the vertices');
-        return;
+    //Configre texture and sampler
+    u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
+    u_Texture_loc = gl.createTexture();
+    if (!u_Texture_loc) {
+        throw new Error("Failed to create texture");
     }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, u_Texture_loc);
+    gl.texImage2D(
+        gl.TEXTURE_2D, //target use
+        0, //mip-map level
+        gl.RGB, //gpu target format
+        256, //width
+        256, //height
+        0, //offset to start
+        gl.RGB, //source format
+        gl.UNSIGNED_BYTE,
+        new Uint8Array(256*256*3).fill(0xFF)
+    );
+    gl.texParameteri(
+        gl.TEXTURE_2D, 
+  		gl.TEXTURE_MIN_FILTER, 
+  	    gl.LINEAR
+    );
 
     gl.clearColor(0, 0, 0, 1);	  // RGBA color for clearing <canvas>
     var tick = function() {
@@ -86,7 +108,7 @@ function draw(gl: WebGL2RenderingContextStrict) {
 
     //Draw left (rasterized) view
     rasterizedShader.useWithContext(gl);
-    updateLocations(gl, rasterizedShader); //update uniform locations
+    updateLocationsRasterized(gl); //update uniform locations
     gl.viewport(0, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
 	mvpMat.setIdentity(); 
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
@@ -96,37 +118,20 @@ function draw(gl: WebGL2RenderingContextStrict) {
     groundGraphicsObject.draw();
 
     //Draw right (raytraced) view
-    rasterizedShader.useWithContext(gl);
-    // updateLocations(gl, rasterizedShader); //update uniform locations
+    raytracedShader.useWithContext(gl);
+    updateLocationsRaytraced(gl);
     gl.viewport(gl.drawingBufferWidth/2, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
-    mvpMat.setIdentity(); 
+    gl.uniform1i(u_Sampler_loc, 0);
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
-    mvpMat.setPerspective(35, canvas.width/2/canvas.height, 1, 100);
     camera.applyTo(mvpMat);
-	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    groundGraphicsObject.draw();
+    textureGraphicsObject.draw();
 }
 
-function updateLocations(gl: WebGL2RenderingContextStrict, sp: ShaderProgram) {
-    u_mvpMat_loc = sp.getUniformLocationInContext(gl, 'u_mvpMat');
-}
-
-function initVertexBuffers(gl: WebGL2RenderingContextStrict) {
-// Set up all buffer objects on our graphics hardware.
-
-    gs.initVertexBuffer();
-
+function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
+    u_mvpMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_mvpMat');
     // Get the ID# for the a_Position variable in the graphics hardware
-    var a_PositionID = gl.getAttribLocation(rasterizedShader.program, 'a_Position');
-    if(a_PositionID < 0) {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
-    }
-    var a_ColorID = gl.getAttribLocation(rasterizedShader.program, 'a_Color');
-    if (a_ColorID < 0) {
-        console.log('Failed to get the storage location of a_Color');
-        return -1;
-    }
+    var a_PositionID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Position');
+    var a_ColorID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Color');
     gl.vertexAttribPointer(a_PositionID, 
                             4,  // # of values in this attrib (1,2,3,4) 
                             gl.FLOAT, // data type (usually gl.FLOAT)
@@ -136,7 +141,6 @@ function initVertexBuffers(gl: WebGL2RenderingContextStrict) {
                                     // 1st stored attrib value we will actually use.
     // Enable this assignment of the bound buffer to the a_Position variable:
     gl.enableVertexAttribArray(a_PositionID);
-
     gl.vertexAttribPointer(
         a_ColorID,
         3,
@@ -147,4 +151,29 @@ function initVertexBuffers(gl: WebGL2RenderingContextStrict) {
     );
     gl.enableVertexAttribArray(a_ColorID);
 }
+
+function updateLocationsRaytraced(gl: WebGL2RenderingContextStrict) {
+    //TODO getting these positions might be slow (it will be slow)
+    var a_PositionID = raytracedShader.getAttributeLocationInContext(gl, 'a_Position');
+    var a_TexCoordID = raytracedShader.getAttributeLocationInContext(gl, 'a_TexCoord');
+    gl.vertexAttribPointer(
+        a_PositionID,
+        2, //TODO not sure on this one
+        gl.FLOAT,
+        false,
+        4*4,
+        0
+    );
+    gl.enableVertexAttribArray(a_PositionID);
+    gl.vertexAttribPointer(
+        a_TexCoordID,
+        2,
+        gl.FLOAT,
+        false,
+        4*4,
+        2*4
+    );
+    gl.enableVertexAttribArray(a_TexCoordID);
+}
+
 main();

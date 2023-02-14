@@ -23,14 +23,15 @@ export class ShaderProgram {
         gl.useProgram(this.program);
     }
 
-    // getAttributeLocationInContext(gl: WebGL2RenderingContextStrict, attribute: string) {
-    //     let location = gl.getAttribLocation(this.program, attribute);
-    //     if (location < 0) {
-    //         //TODO have a way to tell which program? or is call stack sufficient?
-    //         throw new Error(`Failed to get location of ${attribute} in shader!`);
-    //     }
-    //     return location;
-    // }
+    getAttributeLocationInContext(gl: WebGL2RenderingContextStrict, attribute: string) {
+        let location = gl.getAttribLocation(this.program, attribute);
+        if (location < 0) {
+            //TODO have a way to tell which program? or is call stack sufficient?
+            throw new Error(`Failed to get location of ${attribute} in shader!`);
+        }
+        return location;
+    }
+    
     getUniformLocationInContext(gl: WebGL2RenderingContextStrict, uniform: string) {
         let location = gl.getUniformLocation(this.program, uniform);
         if (!location) {
