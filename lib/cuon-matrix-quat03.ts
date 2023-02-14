@@ -509,6 +509,14 @@ export class Matrix4 {
         return this.concat(new Matrix4().setLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ));
     };
 
+    lookAtVecs(position: Vector3, lookDirection: Vector3, upDir: Vector3) {
+        let lookAt = position.add(lookDirection);
+        let [eyeX, eyeY, eyeZ] = position.elements;
+        let [centerX, centerY, centerZ] = lookAt.elements;
+        let [upX, upY, upZ] = upDir.elements;
+        return this.concat(new Matrix4().setLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ));
+    }
+
     dropShadow(plane, light) {
         var mat = new Matrix4();
         var e = mat.elements;

@@ -5,6 +5,7 @@
     ],
     "compilerOptions": {
         "outDir": "build",
-        "sourceMap": true
+        "sourceMap": true,
+        "target": "ES2015",
     }
 }

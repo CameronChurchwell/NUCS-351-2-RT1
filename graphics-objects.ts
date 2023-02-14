@@ -14,6 +14,3 @@ export let boxGraphicsObject = new GraphicsObject(boxVerts, 0x0002, floatsPerVer
 
 let particleVerts = new Float32Array([0, 0, 0, 0, 1, 1, 1]);
 export let particleGraphicsObject = new GraphicsObject(particleVerts, 0x0000, floatsPerVertex);
-
-// let fireBaseVerts = require('./vertex-objects/firebase-vertices.json');
-// export let fireBaseGraphicsObject = new GraphicsObject(fireBaseVerts, WebGL2RenderingContext.TRIANGLES, floatsPerVertex);
