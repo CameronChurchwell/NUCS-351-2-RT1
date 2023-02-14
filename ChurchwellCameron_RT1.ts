@@ -1,12 +1,19 @@
-import { initShaders } from "./lib/cuon-utils";
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { groundGraphicsObject, boxGraphicsObject } from "./graphics-objects";
+import { groundGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
+import { ShaderProgram } from "./lib/shader-program";
 
-var VSHADER_SOURCE = require('./shaders/vertex.glsl');
-var FSHADER_SOURCE = require('./shaders/fragment.glsl');
+var rasterizedShader = new ShaderProgram(
+    require('./shaders/vertex.glsl'),
+    require('./shaders/fragment.glsl')
+)
+
+var raytracedShader = new ShaderProgram(
+    require("./shaders/rt-vertex.glsl"),
+    require("./shaders/rt-fragment.glsl")
+);
 
 var camera = new Camera(
     new Vector3([5, 5, 1.5]),
@@ -16,11 +23,8 @@ var camera = new Camera(
 var inputCtx = new InputContextManager([camera]);
 inputCtx.activate();
 
-var program
-
 var timeStep = 1.0/30.0;				// initialize; current timestep in seconds
 var g_last = Date.now();				//  Timestamp: set after each frame of animation
-
 
 var mvpMat = new Matrix4();
 var u_mvpMat_loc;
@@ -31,7 +35,7 @@ function main() {
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
 
-	var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGLRenderingContextStrict;
+	var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
 
     if (!gl) {
         console.log('Failed to get the rendering context for WebGL');
@@ -39,7 +43,7 @@ function main() {
     }
 
     gs = new GraphicsSystem(gl, [
-        groundGraphicsObject, boxGraphicsObject
+        groundGraphicsObject
     ]);
 
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
@@ -47,11 +51,9 @@ function main() {
     window.addEventListener("keypress", inputCtx.generateCallback("keyPress"), false);
 
     // Initialize shaders
-    program = initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
-    if (!program) {
-        console.log('Failed to intialize shaders.');
-        return;
-    }
+    rasterizedShader.createInContext(gl);
+    raytracedShader.createInContext(gl);
+    rasterizedShader.useWithContext(gl);
 
     var myVerts = initVertexBuffers(gl);
     if (myVerts < 0) {
@@ -60,17 +62,9 @@ function main() {
     }
 
     gl.clearColor(0, 0, 0, 1);	  // RGBA color for clearing <canvas>
-
-    u_mvpMat_loc = gl.getUniformLocation(program, 'u_mvpMat');
-
-    if(!u_mvpMat_loc) {
-		console.log('Failed to get u_ModelMatrix variable location');
-	    return;
-    }
-
     var tick = function() {
         timeStep = animate(timeStep);  // get time passed since last screen redraw.
-        draw(gl, myVerts, timeStep);	// compute new particle state at current time
+        draw(gl);	// compute new particle state at current time
         requestAnimationFrame(tick);  // Call us again 'at next opportunity', //edit: removed canvas as second argument
     };
     tick();
@@ -86,33 +80,49 @@ function animate(timeStep) {
     return elapsed;
 }
 
-function draw(gl, n, timeStep) {
-//==============================================================================  
- 
+function draw(gl: WebGL2RenderingContextStrict) {
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT);
-	// Assign value to mvpMatrix
+
+    //Draw left (rasterized) view
+    rasterizedShader.useWithContext(gl);
+    updateLocations(gl, rasterizedShader); //update uniform locations
+    gl.viewport(0, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
 	mvpMat.setIdentity(); 
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
-    mvpMat.setPerspective(35, canvas.width/canvas.height, 1, 100);
-    camera.apply(mvpMat);
+    mvpMat.setPerspective(35, canvas.width/2/canvas.height, 1, 100);
+    camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
-    boxGraphicsObject.draw();
+
+    //Draw right (raytraced) view
+    rasterizedShader.useWithContext(gl);
+    // updateLocations(gl, rasterizedShader); //update uniform locations
+    gl.viewport(gl.drawingBufferWidth/2, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
+    mvpMat.setIdentity(); 
+    var canvas = <HTMLCanvasElement> document.getElementById('webgl');
+    mvpMat.setPerspective(35, canvas.width/2/canvas.height, 1, 100);
+    camera.applyTo(mvpMat);
+	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
+    groundGraphicsObject.draw();
 }
 
-function initVertexBuffers(gl: WebGLRenderingContextStrict) {
+function updateLocations(gl: WebGL2RenderingContextStrict, sp: ShaderProgram) {
+    u_mvpMat_loc = sp.getUniformLocationInContext(gl, 'u_mvpMat');
+}
+
+function initVertexBuffers(gl: WebGL2RenderingContextStrict) {
 // Set up all buffer objects on our graphics hardware.
 
     gs.initVertexBuffer();
 
     // Get the ID# for the a_Position variable in the graphics hardware
-    var a_PositionID = gl.getAttribLocation(program, 'a_Position');
+    var a_PositionID = gl.getAttribLocation(rasterizedShader.program, 'a_Position');
     if(a_PositionID < 0) {
         console.log('Failed to get the storage location of a_Position');
         return -1;
     }
-    var a_ColorID = gl.getAttribLocation(program, 'a_Color');
+    var a_ColorID = gl.getAttribLocation(rasterizedShader.program, 'a_Color');
     if (a_ColorID < 0) {
         console.log('Failed to get the storage location of a_Color');
         return -1;

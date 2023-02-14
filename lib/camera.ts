@@ -10,7 +10,7 @@ export class Camera {
     strafeDirection: Vector3;
     velocity: Vector3; //relative to look direction
     rotationalVelocity: Matrix4;
-    callbackMap: CallbackMap
+    callbackMap: CallbackMap;
 
     constructor(position: Vector3, upDirection: Vector3, lookDirection: Vector3) {
         this.position = position;
@@ -53,7 +53,7 @@ export class Camera {
         }
     }
 
-    apply(mvpMat: Matrix4) {
+    applyTo(mvpMat: Matrix4) {
         return mvpMat.lookAtVecs(this.position, this.lookDirection, this.upDirection);
     }
 
