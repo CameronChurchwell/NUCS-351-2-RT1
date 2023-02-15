@@ -1,5 +1,8 @@
 import { Matrix4, Vector3 } from "./cuon-matrix-quat03";
+import { Geometry } from "./geometry";
 import { CallbackMap } from "./user-input";
+import { ImageBuffer } from './buffer';
+import { Perspective } from "./perspective";
 
 let trueUpVec = new Vector3([0, 0, 1]);
 
@@ -7,15 +10,17 @@ export class Camera {
     position: Vector3;
     upDirection: Vector3;
     lookDirection: Vector3;
+    perspective: Perspective;
     strafeDirection: Vector3;
     velocity: Vector3; //relative to look direction
     rotationalVelocity: Matrix4;
     callbackMap: CallbackMap;
 
-    constructor(position: Vector3, upDirection: Vector3, lookDirection: Vector3) {
+    constructor(position: Vector3, upDirection: Vector3, lookDirection: Vector3, perspective: Perspective) {
         this.position = position;
         this.upDirection = upDirection;
         this.lookDirection = lookDirection;
+        this.perspective = perspective;
         this.strafeDirection = lookDirection.cross(upDirection);
 
         this.velocity = new Vector3([0, 0, 0]);
@@ -54,7 +59,39 @@ export class Camera {
     }
 
     applyTo(mvpMat: Matrix4) {
+        mvpMat = this.perspective.setMatrix(mvpMat);
         return mvpMat.lookAtVecs(this.position, this.lookDirection, this.upDirection);
+    }
+
+    *makeRayGenerator(xCount: number, yCount: number) {
+        let [width, height] = this.perspective.getFrustumSize();
+        let dx = width/(xCount-1);
+        let dy = height/(yCount-1);
+        for (let j=yCount/2; j>-yCount/2; j--) {
+            for (let i=xCount/2; i>-xCount/2; i--) {
+                let ray = new Vector3([0, 0, 0]);
+                ray.copyFrom(this.lookDirection);
+                ray.addInPlace(this.strafeDirection.normScale(dx*i));
+                ray.addInPlace(this.upDirection.normScale(dy*j));
+                yield ray;
+            }
+        }
+    }
+
+    traceGeometry(geomObject: Geometry, img: ImageBuffer) {
+        let rayGen = this.makeRayGenerator(img.width, img.height);
+        for (let j=img.height-1; j>=0; j--) {
+            for (let i=img.width-1; i>=0; i--) {
+                let ray = rayGen.next().value as Vector3;
+                let intersect = geomObject.intersect(this.position, ray);
+                if (intersect) {
+                    // console.log(ray.elements, intersect.elements);
+                    img.set(i, j, geomObject.hit(intersect));
+                } else {
+                    img.set(i, j, new Uint8Array([0, 0, 0]));
+                }
+            }
+        }
     }
 
     keyDown(kev: KeyboardEvent) {

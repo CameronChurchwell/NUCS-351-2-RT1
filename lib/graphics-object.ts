@@ -2,13 +2,13 @@ import { GraphicsSystem } from "./graphics-system";
 
 export class GraphicsObject {
     vertexArray: Float32Array;
-    drawType: WebGLRenderingContextStrict.DrawMode;
+    drawType: number; // TODO resolve
     floatsPerVertex: number;
     numVertices: number;
     index: number | null;
     graphicsSystem: InstanceType<typeof GraphicsSystem> | null
 
-    constructor(vertexArray, drawType, floatsPerVertex) {
+    constructor(vertexArray: Float32Array, drawType: number, floatsPerVertex: number) {
         this.vertexArray = vertexArray;
         this.drawType = drawType;
         this.floatsPerVertex = floatsPerVertex;
@@ -30,3 +30,18 @@ export class GraphicsObject {
     }
 
 }
+
+// export class GraphicsObjectTraceable extends GraphicsObject {
+//     vertexArray: Float32Array;
+//     drawType: WebGLRenderingContextStrict.DrawMode;
+//     floatsPerVertex: number;
+//     numVertices: number;
+//     index: number | null;
+//     graphicsSystem: InstanceType<typeof GraphicsSystem> | null
+
+//     constructor(vertexArray: Float32Array, drawType: WebGLRenderingContextStrict.DrawMode, floatsPerVertex: number) {
+//         super(vertexArray, drawType, floatsPerVertex);
+//     }
+
+//     hit
+// }

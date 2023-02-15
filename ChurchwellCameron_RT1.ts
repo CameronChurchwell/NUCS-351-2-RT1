@@ -4,6 +4,29 @@ import { groundGraphicsObject, textureGraphicsObject } from "./graphics-objects"
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
+import { GroundPlaneGeometry, PlaneGeometry } from "./lib/geometry";
+import { ImageBuffer } from "./lib/buffer";
+import { Perspective } from "./lib/perspective";
+import { Viewport } from "./lib/viewport";
+import { Tracer } from "./lib/tracer";
+
+
+var testPlane = new GroundPlaneGeometry(
+    new Vector3([0, 0, -1]),
+    new Vector3([0, 0, 1]),
+    new Uint8Array([0xFF, 0xFF, 0xFF])
+);
+// let i = testPlane.intersect(new Vector3([0, 0, 0]), new Vector3([0.1, 0, -1]))
+// console.log(i);
+// if (i) {
+//     console.log(testPlane.hit(i))
+// } else {
+//     console.log('miss!');
+// }
+var img = new ImageBuffer(256, 256);
+// img.set(100, 100, new Uint8Array([0xFF, 0xBB, 0xAA]));
+// console.log(img.get(100, 100));
+// console.log(img.get(101, 100));
 
 var rasterizedShader = new ShaderProgram(
     require('./shaders/vertex.glsl'),
@@ -15,13 +38,13 @@ var raytracedShader = new ShaderProgram(
     require("./shaders/rt-fragment.glsl")
 );
 
-var camera = new Camera(
-    new Vector3([5, 5, 1.5]),
-    new Vector3([0, 0, 1]),
-    new Vector3([-4, -4, 0]).normalize(),
-);
-var inputCtx = new InputContextManager([camera]);
-inputCtx.activate();
+var leftViewport: Viewport;
+var rightViewport: Viewport;
+var perspective: Perspective
+var camera: Camera;
+var tracer: Tracer;
+
+var inputCtx: InputContextManager;
 
 var timeStep = 1.0/30.0;				// initialize; current timestep in seconds
 var g_last = Date.now();				//  Timestamp: set after each frame of animation
@@ -36,13 +59,37 @@ var gs: GraphicsSystem
 function main() {
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
-
-	var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
-
+    var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
     if (!gl) {
-        console.log('Failed to get the rendering context for WebGL');
+        console.log('Failed to get the rendering context for WebGL2');
         return;
     }
+
+    leftViewport = new Viewport(0, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
+    rightViewport = new Viewport(gl.drawingBufferWidth/2, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
+
+    perspective = new Perspective(35, canvas.width/2/canvas.height, 1, 100);
+
+    camera = new Camera(
+        new Vector3([0, 0, 1]),
+        new Vector3([0, 0, 1]),
+        new Vector3([1, 0, 0]).normalize(),
+        perspective
+    );
+    tracer = new Tracer(camera, img, testPlane, gl);
+
+    inputCtx = new InputContextManager([
+        camera, tracer
+    ]);
+    inputCtx.activate();
+
+    let testGen = camera.makeRayGenerator(256, 256);
+    for (let i=0; i<257; i++) {
+        console.log((testGen.next().value as Vector3).elements);
+    }
+
+    camera.traceGeometry(testPlane, img);
+    console.log(img.data);
 
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,
@@ -76,6 +123,7 @@ function main() {
         gl.RGB, //source format
         gl.UNSIGNED_BYTE,
         new Uint8Array(256*256*3).fill(0xFF)
+        // img.data
     );
     gl.texParameteri(
         gl.TEXTURE_2D, 
@@ -107,23 +155,20 @@ function draw(gl: WebGL2RenderingContextStrict) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     //Draw left (rasterized) view
+    leftViewport.focusWithContext(gl);
     rasterizedShader.useWithContext(gl);
     updateLocationsRasterized(gl); //update uniform locations
-    gl.viewport(0, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
-	mvpMat.setIdentity(); 
-    var canvas = <HTMLCanvasElement> document.getElementById('webgl');
-    mvpMat.setPerspective(35, canvas.width/2/canvas.height, 1, 100);
     camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
 
     //Draw right (raytraced) view
+    // tracer.trace(); //real time test
+    rightViewport.focusWithContext(gl);
     raytracedShader.useWithContext(gl);
     updateLocationsRaytraced(gl);
-    gl.viewport(gl.drawingBufferWidth/2, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
     gl.uniform1i(u_Sampler_loc, 0);
-    var canvas = <HTMLCanvasElement> document.getElementById('webgl');
-    camera.applyTo(mvpMat);
+    // camera.applyTo(mvpMat);
     textureGraphicsObject.draw();
 }
 

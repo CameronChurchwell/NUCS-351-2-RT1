@@ -71,7 +71,7 @@ export class GraphicsSystem {
         let graphicsObject = this.graphicsObjectArray[index];
         let floatsPerVertex = graphicsObject.floatsPerVertex;
         this.gl_object.drawArrays(
-            graphicsObject.drawType,
+            graphicsObject.drawType as any, //TODO resolve
             this.vertexArrayOffsets[index] / floatsPerVertex,
             this.vertexArrayLengths[index] / floatsPerVertex
         );
