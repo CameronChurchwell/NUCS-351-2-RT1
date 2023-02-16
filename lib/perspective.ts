@@ -17,7 +17,7 @@ export class Perspective {
         return mvpMat.setPerspective(this.horizontalFOV, this.aspect, this.near, this.far);
     }
 
-    getFrustumSize() {
+    getFrustumSize(): [number, number] {
         let halfAngle = this.horizontalFOV/2;
         let halfWidth = Math.tan(halfAngle/360*2*Math.PI);
         let width = halfWidth * 2;

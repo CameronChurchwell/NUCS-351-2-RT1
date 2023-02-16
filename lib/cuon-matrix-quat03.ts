@@ -594,22 +594,28 @@ export class Vector3 {
         this.elements = v;
     }
 
+    // normalize() {
+    //     var v = this.elements;
+    //     // find the length of the vector:
+    //     var c = v[0], d = v[1], e = v[2], g = Math.sqrt(c*c+d*d+e*e);
+    //     if(g){              // if given vector had non-zero length,
+    //         if(g == 1)        // AND that vector length is already 1.0,
+    //             return this;  // DO NOTHING. Keep current vector contents.
+    //     } else {           // ELSE we got an empty, undefined, or zero-length vector.
+    //         v[0] = 0; v[1] = 0; v[2] = 0;  // set its elements to zero-length, and
+    //         return this;     // return
+    //     }
+    //     // Nope; we have valid vector--adjust its length to 1.0.
+    //     g = 1/g;
+    //     v[0] = c*g; v[1] = d*g; v[2] = e*g;
+    //     return this;
+    // };
+
     normalize() {
-        var v = this.elements;
-        // find the length of the vector:
-        var c = v[0], d = v[1], e = v[2], g = Math.sqrt(c*c+d*d+e*e);
-        if(g){              // if given vector had non-zero length,
-            if(g == 1)        // AND that vector length is already 1.0,
-                return this;  // DO NOTHING. Keep current vector contents.
-        } else {           // ELSE we got an empty, undefined, or zero-length vector.
-            v[0] = 0; v[1] = 0; v[2] = 0;  // set its elements to zero-length, and
-            return this;     // return
-        }
-        // Nope; we have valid vector--adjust its length to 1.0.
-        g = 1/g;
-        v[0] = c*g; v[1] = d*g; v[2] = e*g;
+        let magnitude = this.magnitude();
+        this.scaleInPlace(1/this.magnitude());
         return this;
-    };
+    }
 
     dot(opt_src: Vector3) {
         var vA = this.elements; // short-hand for the calling object
@@ -622,6 +628,13 @@ export class Vector3 {
         }
         return vA[0]*vB[0] + vA[1]*vB[1] + vA[2]*vB[2];  // compute dot-product
     };
+
+    addScaledInPlace(other: Vector3, factor: number) {
+        this.elements[0] += other.elements[0] * factor;
+        this.elements[1] += other.elements[1] * factor;
+        this.elements[2] += other.elements[2] * factor;
+        return this;
+    }
 
 
     cross(opt_src: Vector3) {

@@ -21,7 +21,8 @@ export class Tracer {
     }
 
     trace() {
-        this.camera.traceGeometry(this.geometry, this.img);
+        console.log('begin tracing');
+        this.camera.traceGeometry(this.geometry, this.img, 4);
         this.gl.texSubImage2D(
             this.gl.TEXTURE_2D,
             0,
@@ -33,6 +34,7 @@ export class Tracer {
             this.gl.UNSIGNED_BYTE,
             this.img.data
         );
+        console.log('end tracing');
     }
 
     keyDown(kev: KeyboardEvent) {

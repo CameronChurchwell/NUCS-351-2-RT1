@@ -16,17 +16,8 @@ var testPlane = new GroundPlaneGeometry(
     new Vector3([0, 0, 1]),
     new Uint8Array([0xFF, 0xFF, 0xFF])
 );
-// let i = testPlane.intersect(new Vector3([0, 0, 0]), new Vector3([0.1, 0, -1]))
-// console.log(i);
-// if (i) {
-//     console.log(testPlane.hit(i))
-// } else {
-//     console.log('miss!');
-// }
-var img = new ImageBuffer(256, 256);
-// img.set(100, 100, new Uint8Array([0xFF, 0xBB, 0xAA]));
-// console.log(img.get(100, 100));
-// console.log(img.get(101, 100));
+let resolution = 512;
+var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
     require('./shaders/vertex.glsl'),
@@ -83,13 +74,10 @@ function main() {
     ]);
     inputCtx.activate();
 
-    let testGen = camera.makeRayGenerator(256, 256);
-    for (let i=0; i<257; i++) {
-        console.log((testGen.next().value as Vector3).elements);
-    }
-
-    camera.traceGeometry(testPlane, img);
-    console.log(img.data);
+    // let testGen = camera.makeRayGenerator(256, 256, 2);
+    // for (let i=0; i<1024; i++) {
+    //     console.log(i%4, testGen.next().value.elements);
+    // }
 
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,
@@ -108,21 +96,18 @@ function main() {
     //Configre texture and sampler
     u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
     u_Texture_loc = gl.createTexture();
-    if (!u_Texture_loc) {
-        throw new Error("Failed to create texture");
-    }
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, u_Texture_loc);
     gl.texImage2D(
         gl.TEXTURE_2D, //target use
         0, //mip-map level
         gl.RGB, //gpu target format
-        256, //width
-        256, //height
+        img.width, //width
+        img.height, //height
         0, //offset to start
         gl.RGB, //source format
         gl.UNSIGNED_BYTE,
-        new Uint8Array(256*256*3).fill(0xFF)
+        new Uint8Array(img.width*img.height*3).fill(0x00)
         // img.data
     );
     gl.texParameteri(
@@ -143,7 +128,7 @@ function main() {
 function animate(timeStep) {
 //==============================================================================  
 // How much time passed since we last updated the 'canvas' screen elements?
-    var now = Date.now();	
+    var now = Date.now();
     var elapsed = now - g_last;
     g_last = now;
     camera.solve();

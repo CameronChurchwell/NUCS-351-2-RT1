@@ -32,9 +32,10 @@ export class PlaneGeometry extends Geometry {
             let t = numerator/denominator;
             if (t < 0) {
                 return null;
-            } else { 
-                //TODO do we ned to add here?
-                return rayDirection.scale(t).add(raySourcePosition);
+            } else {
+                rayDirection.scaleInPlace(t);
+                rayDirection.addInPlace(raySourcePosition);
+                return rayDirection;
             }
         }
     }

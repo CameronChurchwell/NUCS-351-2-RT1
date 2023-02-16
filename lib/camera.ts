@@ -63,33 +63,60 @@ export class Camera {
         return mvpMat.lookAtVecs(this.position, this.lookDirection, this.upDirection);
     }
 
-    *makeRayGenerator(xCount: number, yCount: number) {
-        let [width, height] = this.perspective.getFrustumSize();
+    makeRayFunction(centerVec: Vector3, dx: number, dy: number) {
+        return (x: number, y: number) => {
+            let ray = new Vector3(centerVec);
+            ray.addScaledInPlace(this.strafeDirection, dx*x);
+            ray.addScaledInPlace(this.upDirection, dy*y);
+            return ray;
+        }
+    }
+
+    *makeRayGenerator(xCount: number, yCount: number, AA: number = 1, centerVec?: Vector3, dimensions?: [width: number, height: number]) {
+        let [width, height] = dimensions ?? this.perspective.getFrustumSize();
+        centerVec = centerVec ?? this.lookDirection;
         let dx = width/(xCount-1);
         let dy = height/(yCount-1);
+        let rayFunction = this.makeRayFunction(centerVec, dx, dy);
         for (let j=yCount/2; j>-yCount/2; j--) {
             for (let i=xCount/2; i>-xCount/2; i--) {
-                let ray = new Vector3([0, 0, 0]);
-                ray.copyFrom(this.lookDirection);
-                ray.addInPlace(this.strafeDirection.normScale(dx*i));
-                ray.addInPlace(this.upDirection.normScale(dy*j));
-                yield ray;
+                if (AA == 1) { //TODO remove repeated conditional?
+                    yield* [rayFunction(i, j)];
+                } else {
+                    yield* this.makeRayGenerator(AA, AA, 1, rayFunction(i, j), [dx, dy]);
+                }
             }
         }
     }
 
-    traceGeometry(geomObject: Geometry, img: ImageBuffer) {
-        let rayGen = this.makeRayGenerator(img.width, img.height);
+    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1) {
+        let rayGen = this.makeRayGenerator(img.width, img.height, AA);
+        let AANumSquares = Math.pow(AA, 2);
+        let average = new Uint8Array([0, 0, 0]);
         for (let j=img.height-1; j>=0; j--) {
             for (let i=img.width-1; i>=0; i--) {
-                let ray = rayGen.next().value as Vector3;
-                let intersect = geomObject.intersect(this.position, ray);
-                if (intersect) {
-                    // console.log(ray.elements, intersect.elements);
-                    img.set(i, j, geomObject.hit(intersect));
-                } else {
-                    img.set(i, j, new Uint8Array([0, 0, 0]));
+                average[0] = 0;
+                average[1] = 0;
+                average[2] = 0;
+                for (let k=0; k<AANumSquares; k++) {
+                    let ray = rayGen.next().value as Vector3;
+                    // console.log(ray.elements);
+                    let intersect = geomObject.intersect(this.position, ray);
+                    let color: Uint8Array;
+                    if (intersect) {
+                        // console.log(ray.elements, intersect.elements);
+                        // img.set(i, j, geomObject.hit(intersect));
+                        color = geomObject.hit(intersect);
+                    } else {
+                        // img.set(i, j, new Uint8Array([0, 0, 0]));
+                        color = new Uint8Array([0, 0, 0]);
+                    }
+
+                    average[0] += color[0]/AANumSquares;
+                    average[1] += color[1]/AANumSquares;
+                    average[2] += color[2]/AANumSquares;
                 }
+                img.set(i, j, average);
             }
         }
     }
