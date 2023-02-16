@@ -78,11 +78,15 @@ export class Camera {
         let dx = width/(xCount-1);
         let dy = height/(yCount-1);
         let rayFunction = this.makeRayFunction(centerVec, dx, dy);
-        for (let j=yCount/2; j>-yCount/2; j--) {
-            for (let i=xCount/2; i>-xCount/2; i--) {
-                if (AA == 1) { //TODO remove repeated conditional?
-                    yield* [rayFunction(i, j)];
-                } else {
+        if (AA == 1) { //TODO remove repeated conditional?
+            for (let j=yCount/2; j>-yCount/2; j--) {
+                for (let i=xCount/2; i>-xCount/2; i--) {
+                        yield* [rayFunction(i, j)];
+                }
+            }
+        } else {
+            for (let j=yCount/2; j>-yCount/2; j--) {
+                for (let i=xCount/2; i>-xCount/2; i--) {
                     yield* this.makeRayGenerator(AA, AA, 1, rayFunction(i, j), [dx, dy]);
                 }
             }

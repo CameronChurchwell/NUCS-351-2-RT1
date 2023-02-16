@@ -50,8 +50,8 @@ const backgroundColor = new Uint8Array([0, 0, 0]);
 export class GroundPlaneGeometry extends PlaneGeometry {
     hit(position: Vector3): Uint8Array {
         let [x, y] = position.elements.slice(0, 2);
-        x = Math.abs(x);
-        y = Math.abs(y);
+        x = Math.abs(x)+0.5;
+        y = Math.abs(y)+0.5;
         if (x%1 < lineWidth || y%1 < lineWidth) {
             return this.color;
         }
