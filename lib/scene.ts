@@ -14,7 +14,7 @@ export class Scene extends Geometry {
         let closestGeometry: Geometry = null;
         let intersectVector: Vector3 = null;
         for (let geometryObject of this.geometryObjects) {
-            let intersection = geometryObject.intersect(raySourcePosition, rayDirection);
+            let intersection = geometryObject.intersect(new Vector3(raySourcePosition), new Vector3(rayDirection));
             if (intersection && intersection[0].magnitude() < minDistance) {
                 closestGeometry = intersection[1];
                 minDistance = intersection[0].magnitude();
