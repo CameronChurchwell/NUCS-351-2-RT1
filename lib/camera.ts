@@ -45,7 +45,6 @@ export class Camera {
         this.lookDirection = this.rotationalVelocity.multiplyVector3(this.lookDirection).normalize();
 
         //update up direction
-
         this.upDirection = this.rotationalVelocity.multiplyVector3(this.upDirection).normalize();
 
         //update strafe direction
@@ -63,38 +62,45 @@ export class Camera {
         return mvpMat.lookAtVecs(this.position, this.lookDirection, this.upDirection);
     }
 
-    makeRayFunction(centerVec: Vector3, dx: number, dy: number) {
+    makeRayFunction(centerVec: Vector3, dx: number, dy: number, jitter: number = 0) {
         return (x: number, y: number) => {
             let ray = new Vector3(centerVec);
+            //assumes that strafe and up are unit vectors
             ray.addScaledInPlace(this.strafeDirection, dx*x);
             ray.addScaledInPlace(this.upDirection, dy*y);
+            if (jitter) {
+                let xJitter = (Math.random()*2 - 1)*dx*jitter;
+                let yJitter = (Math.random()*2 - 1)*dy*jitter;
+                ray.addScaledInPlace(this.strafeDirection, xJitter);
+                ray.addScaledInPlace(this.upDirection, yJitter);
+            }
             return ray;
         }
     }
 
-    *makeRayGenerator(xCount: number, yCount: number, AA: number = 1, centerVec?: Vector3, dimensions?: [width: number, height: number]) {
+    *makeRayGenerator(xCount: number, yCount: number, AA: number = 1, jitter: number = 0, centerVec?: Vector3, dimensions?: [width: number, height: number]) {
         let [width, height] = dimensions ?? this.perspective.getFrustumSize();
         centerVec = centerVec ?? this.lookDirection;
         let dx = width/(xCount-1);
         let dy = height/(yCount-1);
-        let rayFunction = this.makeRayFunction(centerVec, dx, dy);
-        if (AA == 1) { //TODO remove repeated conditional?
+        let rayFunction = this.makeRayFunction(centerVec, dx, dy, jitter);
+        if (AA == 1) {
             for (let j=yCount/2; j>-yCount/2; j--) {
                 for (let i=xCount/2; i>-xCount/2; i--) {
-                        yield* [rayFunction(i, j)];
+                    yield* [rayFunction(i, j)];
                 }
             }
         } else {
             for (let j=yCount/2; j>-yCount/2; j--) {
                 for (let i=xCount/2; i>-xCount/2; i--) {
-                    yield* this.makeRayGenerator(AA, AA, 1, rayFunction(i, j), [dx, dy]);
+                    yield* this.makeRayGenerator(AA, AA, 1, jitter, rayFunction(i, j), [dx, dy]);
                 }
             }
         }
     }
 
-    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1) {
-        let rayGen = this.makeRayGenerator(img.width, img.height, AA);
+    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0) {
+        let rayGen = this.makeRayGenerator(img.width, img.height, AA, jitter);
         let AANumSquares = Math.pow(AA, 2);
         let average = new Uint8Array([0, 0, 0]);
         for (let j=img.height-1; j>=0; j--) {
@@ -108,11 +114,8 @@ export class Camera {
                     let intersect = geomObject.intersect(this.position, ray);
                     let color: Uint8Array;
                     if (intersect) {
-                        // console.log(ray.elements, intersect.elements);
-                        // img.set(i, j, geomObject.hit(intersect));
                         color = geomObject.hit(intersect);
                     } else {
-                        // img.set(i, j, new Uint8Array([0, 0, 0]));
                         color = new Uint8Array([0, 0, 0]);
                     }
 

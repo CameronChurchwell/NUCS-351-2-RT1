@@ -4,18 +4,14 @@ import { groundGraphicsObject, textureGraphicsObject } from "./graphics-objects"
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { GroundPlaneGeometry, PlaneGeometry } from "./lib/geometry";
+import { GridPlaneGeometry } from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
+import { Scene } from "./lib/scene";
 
 
-var testPlane = new GroundPlaneGeometry(
-    new Vector3([0, 0, -1]),
-    new Vector3([0, 0, 1]),
-    new Uint8Array([0xFF, 0xFF, 0xFF])
-);
 let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
 
@@ -45,9 +41,18 @@ var u_mvpMat_loc;
 var u_Texture_loc;
 var u_Sampler_loc;
 
-var gs: GraphicsSystem
+var gs: GraphicsSystem;
 
 function main() {
+    let groundPlane = new GridPlaneGeometry(
+        new Vector3([0, 0, -1]),
+        new Vector3([0, 0, 1]),
+        new Uint8Array([0xFF, 0xFF, 0xFF])
+    );
+    let globalScene = new Scene([
+        groundPlane
+    ]);
+
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
     var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
@@ -67,7 +72,7 @@ function main() {
         new Vector3([1, 0, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, testPlane, gl);
+    tracer = new Tracer(camera, img, globalScene, gl, 4, 0.1);
 
     inputCtx = new InputContextManager([
         camera, tracer

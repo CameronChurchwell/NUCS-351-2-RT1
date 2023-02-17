@@ -1,11 +1,13 @@
 import { Vector3 } from "./cuon-matrix-quat03";
 
+export type Intersection = [Vector3, Geometry] | null
+
 export abstract class Geometry {
-    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Vector3 | null {
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         throw new Error("Not implemented!");
     };
 
-    hit(position: Vector3): Uint8Array {
+    hit(intersection: Intersection): Uint8Array {
         throw new Error("Not implemented!");
     }
 }
@@ -22,7 +24,7 @@ export class PlaneGeometry extends Geometry {
         this.color = color;
     }
 
-    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Vector3 | null {
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         let totalOffset = this.offsetVector.subtract(raySourcePosition);
         let numerator = totalOffset.dot(this.normalVector);
         let denominator = rayDirection.dot(this.normalVector);
@@ -35,21 +37,21 @@ export class PlaneGeometry extends Geometry {
             } else {
                 rayDirection.scaleInPlace(t);
                 rayDirection.addInPlace(raySourcePosition);
-                return rayDirection;
+                return [rayDirection, this];
             }
         }
     }
 
-    hit(position: Vector3): Uint8Array {
+    hit(intersection: Intersection): Uint8Array {
         return this.color;
     }
 }
 
-const lineWidth = 0.1;
+const lineWidth = 0.05;
 const backgroundColor = new Uint8Array([0, 0, 0]);
-export class GroundPlaneGeometry extends PlaneGeometry {
-    hit(position: Vector3): Uint8Array {
-        let [x, y] = position.elements.slice(0, 2);
+export class GridPlaneGeometry extends PlaneGeometry {
+    hit(intersection: Intersection): Uint8Array {
+        let [x, y] = intersection[0].elements.slice(0, 2);
         x = Math.abs(x)+0.5;
         y = Math.abs(y)+0.5;
         if (x%1 < lineWidth || y%1 < lineWidth) {
