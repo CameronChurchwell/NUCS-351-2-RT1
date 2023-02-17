@@ -4,7 +4,7 @@ import { groundGraphicsObject, textureGraphicsObject } from "./graphics-objects"
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { GridPlaneGeometry } from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, PlaneGeometry } from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
@@ -49,8 +49,21 @@ function main() {
         new Vector3([0, 0, 1]),
         new Uint8Array([0xFF, 0xFF, 0xFF])
     );
+    let disc = new DiscGeometry(
+        new Vector3([5, 5, 1]),
+        new Vector3([1, 0, 0]),
+        2,
+        new Uint8Array([0xFF, 0xFF, 0xFF])
+    );
+    let wallPlane = new GridPlaneGeometry(
+        new Vector3([100, 0, 0]),
+        new Vector3([1, 0, 0]),
+        new Uint8Array([0xFF, 0xFF, 0])
+    )
     let globalScene = new Scene([
-        groundPlane
+        // wallPlane,
+        disc,
+        groundPlane,
     ]);
 
     // Retrieve <canvas> element
