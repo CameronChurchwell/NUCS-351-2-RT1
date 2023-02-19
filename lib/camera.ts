@@ -130,6 +130,9 @@ export class Camera {
                 }
                 img.set(i, j, average);
             }
+            if (j % Math.floor(img.height / 10) == 0) {
+                console.log(j/img.height);
+            }
         }
     }
 

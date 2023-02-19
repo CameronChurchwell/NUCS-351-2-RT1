@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { boxGraphicsObject, cubeGraphicsObject, groundGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { boxGraphicsObject, cubeGraphicsObject, groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -42,21 +42,6 @@ var u_Sampler_loc;
 
 var gs: GraphicsSystem;
 
-var meshGraphicsObject = new GraphicsObject(
-    new Float32Array([
-        0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-        1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
-        0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
-        1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-        1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
-        0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    ]),
-    WebGL2RenderingContext.TRIANGLES,
-    7
-);
-
-var mesh = new MeshGeometry(cubeGraphicsObject, new Vector3([0, 0, 0]));
-
 function main() {
 
     let groundPlane = new GridPlaneGeometry(
@@ -86,11 +71,15 @@ function main() {
         2,
         new Uint8Array([0xFF, 0xFF, 0xFF])
     );
+    // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
+    // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
+    let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), 100);
     let globalScene = new CompositeGeometry([
         mesh,
         // sphere,
         groundPlane,
     ]);
+    console.log(mesh);
 
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
@@ -120,11 +109,10 @@ function main() {
 
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,
-        cubeGraphicsObject,
+        teapotGraphicsObject,
         textureGraphicsObject,
     ]);
     gs.initVertexBuffer();
-    console.log(gs);
 
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
     window.addEventListener("keyup", inputCtx.generateCallback("keyUp"), false);
@@ -187,11 +175,7 @@ function draw(gl: WebGL2RenderingContextStrict) {
     camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
-    // testGraphicsObject.draw();
-    // meshGraphicsObject.draw();
-    cubeGraphicsObject.draw();
-
-
+    teapotGraphicsObject.draw();
 
     //Draw right (raytraced) view
     // tracer.trace(); //real time test
@@ -199,7 +183,6 @@ function draw(gl: WebGL2RenderingContextStrict) {
     raytracedShader.useWithContext(gl);
     updateLocationsRaytraced(gl);
     gl.uniform1i(u_Sampler_loc, 0);
-    // camera.applyTo(mvpMat);
     textureGraphicsObject.draw();
 }
 

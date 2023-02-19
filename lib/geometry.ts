@@ -182,39 +182,63 @@ export class CompositeGeometry extends Geometry {
 export class MeshGeometry extends CompositeGeometry {
     boundingSphere: BoundingSphereGeometry;
 
-    constructor(graphicsObject: GraphicsObject, offsetVector: Vector3,) {
-        const fpv = graphicsObject.floatsPerVertex;
-        let triangles: TriangleGoemetry[] = [];
-        let center = new Vector3(offsetVector); //TODO optimize?
-        let maxDistance = 0;
-        for (let i=0; i< graphicsObject.numVertices; i+=3) {
-            const start = fpv*i;
-            const vertex0 = new Vector3(graphicsObject.vertexArray.slice(start, start+3));
-            const vertex1 = new Vector3(graphicsObject.vertexArray.slice(start+fpv, start+fpv+3));
-            const vertex2 = new Vector3(graphicsObject.vertexArray.slice(start+fpv*2, start+2*fpv+3));
-            let distance0 = vertex0.distanceFrom(center);
-            let distance1 = vertex1.distanceFrom(center);
-            let distance2 = vertex2.distanceFrom(center);
-            if (distance0 > maxDistance) {
-                maxDistance = distance0;
+    constructor(vertexArray: Float32Array, floatsPerVertex: number, offsetVector: Vector3, chunkSize: number = Infinity) {
+        let numVertices = vertexArray.length / floatsPerVertex;
+        if (chunkSize == Infinity) {
+            let triangles: TriangleGoemetry[] = [];
+            // let center = new Vector3(offsetVector); //TODO optimize?
+            let center = new Vector3([0, 0, 0]);
+            let maxDistance = 0;
+            let regularizer = 1/numVertices;
+            for (let i=0; i< numVertices; i++) {
+                let vertex = new Vector3(vertexArray.slice(i*floatsPerVertex, i*floatsPerVertex+3));
+                vertex.scaleInPlace(regularizer);
+                center.addInPlace(vertex);
             }
-            if (distance1 > maxDistance) {
-                maxDistance = distance1;
+            for (let i=0; i< numVertices; i++) {
+                let vertex = new Vector3(vertexArray.slice(i*floatsPerVertex, i*floatsPerVertex+3));
+                let distanceFromCenter = vertex.distanceFrom(center);
+                if (distanceFromCenter > maxDistance) {
+                    maxDistance = distanceFromCenter;
+                }
             }
-            if (distance2 > maxDistance) {
-                maxDistance = distance2;
+            center.addInPlace(offsetVector);
+            for (let i=0; i< numVertices; i+=3) {
+                const start = floatsPerVertex*i;
+                const vertex0 = new Vector3(vertexArray.slice(start, start+3));
+                const vertex1 = new Vector3(vertexArray.slice(start+floatsPerVertex, start+floatsPerVertex+3));
+                const vertex2 = new Vector3(vertexArray.slice(start+floatsPerVertex*2, start+2*floatsPerVertex+3));
+                triangles.push(new TriangleGoemetry(
+                    vertex0.add(offsetVector),
+                    vertex1.add(offsetVector),
+                    vertex2.add(offsetVector),
+                    new Uint8Array([0xFF, 0xFF, 0xFF])
+                ));
             }
-            triangles.push(new TriangleGoemetry(
-                vertex0.add(offsetVector),
-                vertex1.add(offsetVector),
-                vertex2.add(offsetVector),
-                new Uint8Array([0xFF, 0xFF, 0xFF])
-            ));
+            // maxDistance += 0.1;
+            super(triangles);
+            this.boundingSphere = new BoundingSphereGeometry(center, maxDistance);
+        } else if (chunkSize > 0) {
+            let subMeshes: MeshGeometry[] = [];
+            let boundingSpheres: BoundingSphereGeometry[] = [];
+            let numTriangles = numVertices / 3;
+            // console.log("numVertices:", numVertices);
+            // console.log("numTriangles:", numTriangles);
+            // console.log("chunkSize:", chunkSize);
+            for (let i=0; i < numTriangles; i += chunkSize) {
+                // console.log(i);
+                let start = i*floatsPerVertex*3;
+                let count = floatsPerVertex*chunkSize*3;
+                // console.log("start, count:", start, count);
+                let vertices = vertexArray.slice(start, start+count);
+                subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/2 > 10 ? chunkSize/10 : Infinity));
+                boundingSpheres.push(subMeshes[subMeshes.length-1].boundingSphere);
+            }
+            super(subMeshes);
+            this.boundingSphere = BoundingSphereGeometry.fromBoundingSpheres(boundingSpheres);
+        } else {
+            throw new Error("chunkSize must be positive");
         }
-        maxDistance += 0.1;
-        super(triangles);
-
-        this.boundingSphere = new BoundingSphereGeometry(offsetVector, maxDistance);
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
@@ -255,6 +279,22 @@ export class BoundingSphereGeometry extends DiscGeometry {
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
         this.normalVector = rayDirection;
         return super.intersect(raySourcePosition, rayDirection);
+    }
+
+    static fromBoundingSpheres(spheres: BoundingSphereGeometry[]): BoundingSphereGeometry {
+        let center = new Vector3([0, 0, 0]);
+        let regularizer = 1/spheres.length;
+        for (let sphere of spheres) {
+            center.addScaledInPlace(sphere.offsetVector, regularizer);
+        }
+        let maxDistance = 0;
+        for (let sphere of spheres) {
+            let distance = sphere.offsetVector.distanceFrom(center) + sphere.radius;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+            }
+        }
+        return new BoundingSphereGeometry(center, maxDistance);
     }
 
     hit(intersection: [Vector3, Geometry]): Uint8Array {
