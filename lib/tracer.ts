@@ -47,6 +47,22 @@ export class Tracer {
             case "KeyT":
                 this.trace();
                 break;
+            case "KeyP":
+                this.AA += 1;
+                document.getElementById("AA").innerHTML = this.AA.toString();
+                break;
+            case "KeyO":
+                this.AA -= 1;
+                if (this.AA < 0) this.AA = 0;
+                document.getElementById("AA").innerHTML = this.AA.toString();
+                break;
+            case "KeyJ":
+                if (this.jitter <= 0.2) {
+                    this.jitter += 0.05;
+                } else {
+                    this.jitter = 0;
+                }
+                document.getElementById("jitter").innerHTML = this.jitter.toString();
             default:
                 break;
         }

@@ -4,7 +4,7 @@ import { boxGraphicsObject, cubeGraphicsObject, groundGraphicsObject, textureGra
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry } from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry, SphereGeometry } from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
@@ -12,7 +12,7 @@ import { Tracer } from "./lib/tracer";
 import { GraphicsObject } from "./lib/graphics-object";
 
 
-let resolution = 512;
+let resolution = 128;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -82,11 +82,14 @@ function main() {
         new Vector3([10, 4, 0,]),
         new Uint8Array([0xFF, 0xFF, 0xFF])
     );
+    let sphere = new SphereGeometry(
+        new Vector3([0, 0, 1]),
+        2,
+        new Uint8Array([0xFF, 0xFF, 0xFF])
+    );
     let globalScene = new CompositeGeometry([
-        // wallPlane,
-        // disc,
-        // triangle,
         mesh,
+        sphere,
         groundPlane,
     ]);
 
@@ -109,7 +112,7 @@ function main() {
         new Vector3([1, 0, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 4, 0.1);
+    tracer = new Tracer(camera, img, globalScene, gl, 2, 0.1);
 
     inputCtx = new InputContextManager([
         camera, tracer

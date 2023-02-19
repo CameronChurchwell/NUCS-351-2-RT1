@@ -81,26 +81,20 @@ export class GridPlaneGeometry extends PlaneGeometry {
     // }
 }
 
-export class DiscGeometry extends Geometry {
-    center: Vector3;
+export class DiscGeometry extends PlaneGeometry {
     radius: number;
-    testPlane: PlaneGeometry;
-    color: Uint8Array;
 
     constructor(center: Vector3, normalVector: Vector3, radius: number, color: Uint8Array) {
-        super();
-        this.center = center;
+        super(center, normalVector, color);
         this.radius = radius;
-        this.color = color;
-        this.testPlane = new PlaneGeometry(center, normalVector, new Uint8Array([0, 0, 0]));
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         // this.testPlane.normalVector.copyFrom(rayDirection).normalize(); //this is for a sphere
-        let intersection = this.testPlane.intersect(raySourcePosition, rayDirection);
+        let intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             let planePosition = intersection[0];
-            let difference = planePosition.subtract(this.center);
+            let difference = planePosition.subtract(this.offsetVector);
             if (difference.magnitude() < this.radius) {
                 return [planePosition, this];
             }
@@ -202,5 +196,37 @@ export class MeshGeometry extends CompositeGeometry {
             ));
         }
         super(triangles);
+    }
+}
+
+export class SphereGeometry extends DiscGeometry {
+    radius: number;
+
+    constructor(center: Vector3, radius: number, color: Uint8Array) {
+        super(center, new Vector3([0, 0, 0]), radius, color);
+    }
+
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
+        this.normalVector = rayDirection;
+        let intersection = super.intersect(raySourcePosition, rayDirection);
+        if (intersection) {
+            let position = intersection[0];
+            let distanceFromCenter = position.subtract(this.offsetVector).magnitude();
+            //negative here is because normal vector points away from camera
+            let height = Math.sqrt(Math.pow(this.radius, 2) - Math.pow(distanceFromCenter, 2));
+            position.addScaledInPlace(this.normalVector, -height)
+            return [position, this];
+        }
+    }
+}
+
+export class BoundingSphereGeometry extends DiscGeometry {
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
+        this.normalVector = rayDirection;
+        return super.intersect(raySourcePosition, rayDirection);
+    }
+
+    hit(intersection: [Vector3, Geometry]): Uint8Array {
+        throw new Error("No hits should be called on bounding geometry");
     }
 }
