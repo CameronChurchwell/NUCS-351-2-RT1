@@ -4,6 +4,12 @@ import { GraphicsObject } from "./graphics-object";
 export type Intersection = [Vector3, Geometry] | null
 
 export abstract class Geometry {
+    reusableVector: Vector3;
+
+    constructor() {
+        this.reusableVector = new Vector3([0, 0, 0]);
+    }
+
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         throw new Error("Not implemented!");
     };
@@ -26,11 +32,17 @@ export class PlaneGeometry extends Geometry {
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
-        let totalOffset = this.offsetVector.subtract(raySourcePosition);
+        this.reusableVector.copyFrom(this.offsetVector);
+        this.reusableVector.subtractInPlace(raySourcePosition);
+        let totalOffset = this.reusableVector;
+        // let totalOffset = this.offsetVector.subtract(raySourcePosition);
         let numerator = totalOffset.dot(this.normalVector);
         let denominator = rayDirection.dot(this.normalVector);
         if (numerator == 0) {
-            return [this.normalVector.scale(this.normalVector.dot(this.offsetVector)), this]
+            this.reusableVector.copyFrom(this.normalVector);
+            this.reusableVector.scaleInPlace(this.normalVector.dot(this.offsetVector));
+            return [this.reusableVector, this];
+            // return [this.normalVector.scale(this.normalVector.dot(this.offsetVector)), this];
         }
         if (denominator == 0) {
             return null;
@@ -39,9 +51,13 @@ export class PlaneGeometry extends Geometry {
             if (t < 0) {
                 return null;
             } else {
-                rayDirection.scaleInPlace(t);
-                rayDirection.addInPlace(raySourcePosition);
-                return [rayDirection, this];
+                this.reusableVector.copyFrom(rayDirection);
+                this.reusableVector.scaleInPlace(t);
+                this.reusableVector.addInPlace(raySourcePosition);
+                return [this.reusableVector, this];
+                // rayDirection.scaleInPlace(t);
+                // rayDirection.addInPlace(raySourcePosition);
+                // return [rayDirection, this];
             }
         }
     }
@@ -94,8 +110,12 @@ export class DiscGeometry extends PlaneGeometry {
         let intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             let planePosition = intersection[0];
-            let difference = planePosition.subtract(this.offsetVector);
-            if (difference.magnitude() < this.radius) {
+            // this.reusableVector.copyFrom(planePosition);
+            // this.reusableVector.subtract(this.offsetVector);
+            // let difference = this.reusableVector;
+            // let difference = planePosition.subtract(this.offsetVector);
+            // if (difference.magnitude() < this.radius) {
+            if (planePosition.distanceFrom(this.offsetVector) < this.radius) {
                 return [planePosition, this];
             }
         }
@@ -131,7 +151,10 @@ export class TriangleGoemetry extends PlaneGeometry {
         if (intersection) {
             const p = intersection[0];
 
-            const difference = p.subtract(this.offsetVector);
+            this.reusableVector.copyFrom(p);
+            this.reusableVector.subtractInPlace(this.offsetVector);
+            let difference = this.reusableVector
+            // const difference = p.subtract(this.offsetVector);
             const angle0 = difference.dot(this.side0);
             const angle1 = difference.dot(this.side1);
 
@@ -158,7 +181,8 @@ export class CompositeGeometry extends Geometry {
         let closestGeometry: Geometry = null;
         let intersectVector: Vector3 = null;
         for (let geometryObject of this.geometryObjects) {
-            let intersection = geometryObject.intersect(new Vector3(raySourcePosition), new Vector3(rayDirection));
+            // let intersection = geometryObject.intersect(new Vector3(raySourcePosition), new Vector3(rayDirection));
+            let intersection = geometryObject.intersect(raySourcePosition, rayDirection);
             if (intersection && intersection[0].magnitude() < minDistance) {
                 closestGeometry = intersection[1];
                 minDistance = intersection[0].magnitude();
@@ -211,7 +235,8 @@ export class SphereGeometry extends DiscGeometry {
         let intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             let position = intersection[0];
-            let distanceFromCenter = position.subtract(this.offsetVector).magnitude();
+            let distanceFromCenter = position.distanceFrom(this.offsetVector);
+            // let distanceFromCenter = position.subtract(this.offsetVector).magnitude();
             //negative here is because normal vector points away from camera
             let height = Math.sqrt(Math.pow(this.radius, 2) - Math.pow(distanceFromCenter, 2));
             position.addScaledInPlace(this.normalVector, -height)
@@ -229,4 +254,7 @@ export class BoundingSphereGeometry extends DiscGeometry {
     hit(intersection: [Vector3, Geometry]): Uint8Array {
         throw new Error("No hits should be called on bounding geometry");
     }
+}
+
+export class AcceleratedMeshGeometry extends MeshGeometry {
 }

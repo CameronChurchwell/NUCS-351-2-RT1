@@ -12,7 +12,7 @@ import { Tracer } from "./lib/tracer";
 import { GraphicsObject } from "./lib/graphics-object";
 
 
-let resolution = 128;
+let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -112,7 +112,7 @@ function main() {
         new Vector3([1, 0, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 2, 0.1);
+    tracer = new Tracer(camera, img, globalScene, gl, 4, 0.1);
 
     inputCtx = new InputContextManager([
         camera, tracer

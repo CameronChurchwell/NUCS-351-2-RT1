@@ -584,14 +584,23 @@ export class Matrix4 {
 export class Vector3 {
     elements: Float32Array;
 
-    constructor(opt_src?) {
-        var v = new Float32Array(3);
+    // constructor(opt_src?) {
+    //     var v = new Float32Array(3);
+    //     if (opt_src instanceof Vector3) {
+    //         v.set(opt_src.elements);
+    //     } else if (opt_src) {
+    //         v.set(opt_src);
+    //     }
+    //     this.elements = v;
+    // }
+
+    constructor(opt_src?: Vector3 | number[] | Float32Array) {
+        this.elements = new Float32Array(3);
         if (opt_src instanceof Vector3) {
-            v.set(opt_src.elements);
+            this.elements.set(opt_src.elements);
         } else if (opt_src) {
-            v.set(opt_src);
+            this.elements.set(opt_src);
         }
-        this.elements = v;
     }
 
     // normalize() {
@@ -766,6 +775,13 @@ export class Vector3 {
             0, 0, 0, 1
         ]);
         return mat;
+    }
+
+    distanceFrom(other: Vector3) {
+        let xDist = this.elements[0] - other.elements[0];
+        let yDist = this.elements[1] - other.elements[1];
+        let zDist = this.elements[2] - other.elements[2];
+        return Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
     }
 }
 
