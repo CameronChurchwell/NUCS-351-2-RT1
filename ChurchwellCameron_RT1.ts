@@ -11,8 +11,7 @@ import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 import { GraphicsObject } from "./lib/graphics-object";
 
-
-let resolution = 512;
+let resolution = 1024;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -118,11 +117,6 @@ function main() {
         camera, tracer
     ]);
     inputCtx.activate();
-
-    // let testGen = camera.makeRayGenerator(256, 256, 2);
-    // for (let i=0; i<1024; i++) {
-    //     console.log(i%4, testGen.next().value.elements);
-    // }
 
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,

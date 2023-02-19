@@ -33,17 +33,12 @@ export class PlaneGeometry extends Geometry {
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         // this.reusableVector.copyFrom(this.offsetVector);
-        // this.reusableVector.subtractInPlace(raySourcePosition);
-        // let totalOffset = this.reusableVector;
-        // let totalOffset = this.offsetVector.subtract(raySourcePosition);
-        // let numerator = totalOffset.dot(this.normalVector);
         let numerator = this.normalVector.dotWithDifference(this.offsetVector, raySourcePosition);
         let denominator = rayDirection.dot(this.normalVector);
         if (numerator == 0) {
             this.reusableVector.copyFrom(this.normalVector);
             this.reusableVector.scaleInPlace(this.normalVector.dot(this.offsetVector));
             return [this.reusableVector, this];
-            // return [this.normalVector.scale(this.normalVector.dot(this.offsetVector)), this];
         }
         if (denominator == 0) {
             return null;
@@ -56,9 +51,6 @@ export class PlaneGeometry extends Geometry {
                 this.reusableVector.scaleInPlace(t);
                 this.reusableVector.addInPlace(raySourcePosition);
                 return [this.reusableVector, this];
-                // rayDirection.scaleInPlace(t);
-                // rayDirection.addInPlace(raySourcePosition);
-                // return [rayDirection, this];
             }
         }
     }
@@ -86,16 +78,6 @@ export class GridPlaneGeometry extends PlaneGeometry {
             return null;
         }
     }
-
-    // hit(intersection: Intersection): Uint8Array {
-    //     let [x, y] = intersection[0].elements.slice(0, 2);
-    //     x = Math.abs(x)+0.5;
-    //     y = Math.abs(y)+0.5;
-    //     if (x%1 < lineWidth || y%1 < lineWidth) {
-    //         return this.color;
-    //     }
-    //     return backgroundColor;
-    // }
 }
 
 export class DiscGeometry extends PlaneGeometry {
@@ -111,11 +93,6 @@ export class DiscGeometry extends PlaneGeometry {
         let intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             let planePosition = intersection[0];
-            // this.reusableVector.copyFrom(planePosition);
-            // this.reusableVector.subtract(this.offsetVector);
-            // let difference = this.reusableVector;
-            // let difference = planePosition.subtract(this.offsetVector);
-            // if (difference.magnitude() < this.radius) {
             if (planePosition.distanceFrom(this.offsetVector) < this.radius) {
                 return [planePosition, this];
             }
