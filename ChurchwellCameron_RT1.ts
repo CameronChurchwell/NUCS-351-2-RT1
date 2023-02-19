@@ -1,15 +1,15 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { groundGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { boxGraphicsObject, cubeGraphicsObject, groundGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { DiscGeometry, GridPlaneGeometry, PlaneGeometry } from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry } from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { Scene } from "./lib/scene";
+import { GraphicsObject } from "./lib/graphics-object";
 
 
 let resolution = 512;
@@ -18,7 +18,7 @@ var img = new ImageBuffer(resolution, resolution);
 var rasterizedShader = new ShaderProgram(
     require('./shaders/vertex.glsl'),
     require('./shaders/fragment.glsl')
-)
+);
 
 var raytracedShader = new ShaderProgram(
     require("./shaders/rt-vertex.glsl"),
@@ -43,7 +43,23 @@ var u_Sampler_loc;
 
 var gs: GraphicsSystem;
 
+var meshGraphicsObject = new GraphicsObject(
+    new Float32Array([
+        0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+        0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+        1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+        0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    ]),
+    WebGL2RenderingContext.TRIANGLES,
+    7
+);
+
+var mesh = new MeshGeometry(cubeGraphicsObject, new Vector3([0, 0, 0]));
+
 function main() {
+
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
         new Vector3([0, 0, 1]),
@@ -60,9 +76,17 @@ function main() {
         new Vector3([1, 0, 0]),
         new Uint8Array([0xFF, 0xFF, 0])
     )
-    let globalScene = new Scene([
+    let triangle = new TriangleGoemetry(
+        new Vector3([10, 0, 0]),
+        new Vector3([10, 0, 4]),
+        new Vector3([10, 4, 0,]),
+        new Uint8Array([0xFF, 0xFF, 0xFF])
+    );
+    let globalScene = new CompositeGeometry([
         // wallPlane,
-        disc,
+        // disc,
+        // triangle,
+        mesh,
         groundPlane,
     ]);
 
@@ -99,8 +123,11 @@ function main() {
 
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,
-        textureGraphicsObject
+        cubeGraphicsObject,
+        textureGraphicsObject,
     ]);
+    gs.initVertexBuffer();
+    console.log(gs);
 
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
     window.addEventListener("keyup", inputCtx.generateCallback("keyUp"), false);
@@ -109,7 +136,6 @@ function main() {
     // Initialize shaders
     rasterizedShader.createInContext(gl);
     raytracedShader.createInContext(gl);
-    gs.initVertexBuffer();
 
     //Configre texture and sampler
     u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
@@ -164,6 +190,11 @@ function draw(gl: WebGL2RenderingContextStrict) {
     camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
+    // testGraphicsObject.draw();
+    // meshGraphicsObject.draw();
+    cubeGraphicsObject.draw();
+
+
 
     //Draw right (raytraced) view
     // tracer.trace(); //real time test
