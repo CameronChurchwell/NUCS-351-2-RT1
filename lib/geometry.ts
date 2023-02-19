@@ -32,11 +32,12 @@ export class PlaneGeometry extends Geometry {
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
-        this.reusableVector.copyFrom(this.offsetVector);
-        this.reusableVector.subtractInPlace(raySourcePosition);
-        let totalOffset = this.reusableVector;
+        // this.reusableVector.copyFrom(this.offsetVector);
+        // this.reusableVector.subtractInPlace(raySourcePosition);
+        // let totalOffset = this.reusableVector;
         // let totalOffset = this.offsetVector.subtract(raySourcePosition);
-        let numerator = totalOffset.dot(this.normalVector);
+        // let numerator = totalOffset.dot(this.normalVector);
+        let numerator = this.normalVector.dotWithDifference(this.offsetVector, raySourcePosition);
         let denominator = rayDirection.dot(this.normalVector);
         if (numerator == 0) {
             this.reusableVector.copyFrom(this.normalVector);
@@ -202,16 +203,30 @@ export class CompositeGeometry extends Geometry {
 }
 
 export class MeshGeometry extends CompositeGeometry {
+    boundingSphere: BoundingSphereGeometry;
 
     constructor(graphicsObject: GraphicsObject, offsetVector: Vector3,) {
-        
         const fpv = graphicsObject.floatsPerVertex;
         let triangles: TriangleGoemetry[] = [];
+        let center = new Vector3(offsetVector); //TODO optimize?
+        let maxDistance = 0;
         for (let i=0; i< graphicsObject.numVertices; i+=3) {
             const start = fpv*i;
             const vertex0 = new Vector3(graphicsObject.vertexArray.slice(start, start+3));
             const vertex1 = new Vector3(graphicsObject.vertexArray.slice(start+fpv, start+fpv+3));
             const vertex2 = new Vector3(graphicsObject.vertexArray.slice(start+fpv*2, start+2*fpv+3));
+            let distance0 = vertex0.distanceFrom(center);
+            let distance1 = vertex1.distanceFrom(center);
+            let distance2 = vertex2.distanceFrom(center);
+            if (distance0 > maxDistance) {
+                maxDistance = distance0;
+            }
+            if (distance1 > maxDistance) {
+                maxDistance = distance1;
+            }
+            if (distance2 > maxDistance) {
+                maxDistance = distance2;
+            }
             triangles.push(new TriangleGoemetry(
                 vertex0.add(offsetVector),
                 vertex1.add(offsetVector),
@@ -219,7 +234,17 @@ export class MeshGeometry extends CompositeGeometry {
                 new Uint8Array([0xFF, 0xFF, 0xFF])
             ));
         }
+        maxDistance += 0.1;
         super(triangles);
+
+        this.boundingSphere = new BoundingSphereGeometry(offsetVector, maxDistance);
+    }
+
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
+        let intersection = this.boundingSphere.intersect(raySourcePosition, rayDirection);
+        if (intersection) {
+            return super.intersect(raySourcePosition, rayDirection);
+        }
     }
 }
 
@@ -246,6 +271,10 @@ export class SphereGeometry extends DiscGeometry {
 }
 
 export class BoundingSphereGeometry extends DiscGeometry {
+    constructor(center: Vector3, radius: number) {
+        super(center, new Vector3([0, 0, 0]), radius, null);
+    }
+
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
         this.normalVector = rayDirection;
         return super.intersect(raySourcePosition, rayDirection);
@@ -254,7 +283,4 @@ export class BoundingSphereGeometry extends DiscGeometry {
     hit(intersection: [Vector3, Geometry]): Uint8Array {
         throw new Error("No hits should be called on bounding geometry");
     }
-}
-
-export class AcceleratedMeshGeometry extends MeshGeometry {
 }

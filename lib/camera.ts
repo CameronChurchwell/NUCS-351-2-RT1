@@ -15,6 +15,7 @@ export class Camera {
     velocity: Vector3; //relative to look direction
     rotationalVelocity: Matrix4;
     callbackMap: CallbackMap;
+    reusableRay: Vector3;
 
     constructor(position: Vector3, upDirection: Vector3, lookDirection: Vector3, perspective: Perspective) {
         this.position = position;
@@ -30,6 +31,8 @@ export class Camera {
             ['keyDown', this.keyDown.bind(this)],
             ['keyUp', this.keyUp.bind(this)]
         ]);
+
+        this.reusableRay = new Vector3([0, 0, 0]);
     }
 
     solve(timestep: number = 1) {
@@ -64,7 +67,9 @@ export class Camera {
 
     makeRayFunction(centerVec: Vector3, dx: number, dy: number, jitter: number = 0) {
         return (x: number, y: number) => {
-            let ray = new Vector3(centerVec);
+            // let ray = new Vector3(centerVec);
+            let ray = this.reusableRay;
+            ray.copyFrom(centerVec);
             //assumes that strafe and up are unit vectors
             ray.addScaledInPlace(this.strafeDirection, dx*x);
             ray.addScaledInPlace(this.upDirection, dy*y);

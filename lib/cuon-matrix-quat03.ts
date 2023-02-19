@@ -777,6 +777,12 @@ export class Vector3 {
         return mat;
     }
 
+    dotWithDifference(other0: Vector3, other1: Vector3) {
+        return this.elements[0] * (other0.elements[0] - other1.elements[0])
+        + this.elements[1] * (other0.elements[1] - other1.elements[1])
+        + this.elements[2] * (other0.elements[2] - other1.elements[2]);
+    }
+
     distanceFrom(other: Vector3) {
         let xDist = this.elements[0] - other.elements[0];
         let yDist = this.elements[1] - other.elements[1];

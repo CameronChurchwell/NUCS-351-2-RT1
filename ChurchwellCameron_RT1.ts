@@ -89,7 +89,7 @@ function main() {
     );
     let globalScene = new CompositeGeometry([
         mesh,
-        sphere,
+        // sphere,
         groundPlane,
     ]);
 
