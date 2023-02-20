@@ -11,7 +11,7 @@ import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 import { GraphicsObject } from "./lib/graphics-object";
 
-let resolution = 1024;
+let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -73,13 +73,14 @@ function main() {
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
-    let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), 100);
+    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 100);
+    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
     let globalScene = new CompositeGeometry([
-        mesh,
+        teapot0,
+        teapot1,
         // sphere,
         groundPlane,
     ]);
-    console.log(mesh);
 
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
@@ -97,10 +98,10 @@ function main() {
     camera = new Camera(
         new Vector3([0, 0, 1]),
         new Vector3([0, 0, 1]),
-        new Vector3([1, 0, 0]).normalize(),
+        new Vector3([0, 1, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 4, 0.1);
+    tracer = new Tracer(camera, img, globalScene, gl, 2, 0.1);
 
     inputCtx = new InputContextManager([
         camera, tracer
@@ -175,6 +176,11 @@ function draw(gl: WebGL2RenderingContextStrict) {
     camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
+    mvpMat.translate(0, 8, 0);
+    gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
+    teapotGraphicsObject.draw();
+    mvpMat.translate(8, -8, 0);
+    gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     teapotGraphicsObject.draw();
 
     //Draw right (raytraced) view
