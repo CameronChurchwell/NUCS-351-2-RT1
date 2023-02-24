@@ -1,11 +1,18 @@
 {
     "include": [
         "**/*.ts",
+        "**/*.js",
         "node_modules/webgl-strict-types/index.d.ts"
     ],
+    "exclude": [
+        "**/*.wasm"
+    ],
     "compilerOptions": {
+        "module": "ESNext",
         "outDir": "build",
         "sourceMap": true,
-        "target": "ES2015",
+        "target": "ES2022",
+        "allowJs": true,
+        "moduleResolution": "node",
     }
 }

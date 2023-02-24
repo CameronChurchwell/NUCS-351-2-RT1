@@ -22,7 +22,9 @@ export class Camera {
         this.upDirection = upDirection;
         this.lookDirection = lookDirection;
         this.perspective = perspective;
-        this.strafeDirection = lookDirection.cross(upDirection);
+        this.strafeDirection = new Vector3();
+        lookDirection.cross(upDirection, this.strafeDirection);
+        // this.strafeDirection = lookDirection.cross(upDirection);
 
         this.velocity = new Vector3([0, 0, 0]);
         this.rotationalVelocity = new Matrix4();
@@ -36,27 +38,27 @@ export class Camera {
     }
 
     solve(timestep: number = 1) {
-        let worldVelocity = this.lookDirection.scale(this.velocity.elements[0]);
-        let strafeVec = this.lookDirection.cross(this.upDirection);
-        worldVelocity.addInPlace(strafeVec.normScale(this.velocity.elements[1]));
+        this.position.addScaledInPlace(this.lookDirection, this.velocity.elements[0] * timestep);
+        this.position.addScaledInPlace(this.strafeDirection, this.velocity.elements[1] * timestep);
 
-        this.position.addInPlace(worldVelocity.scale(timestep));
-
-        let original = new Vector3(this.lookDirection);
+        this.reusableRay.copyFrom(this.lookDirection);
         //TODO add rotation scaling by timestep
         //update look direction
-        this.lookDirection = this.rotationalVelocity.multiplyVector3(this.lookDirection).normalize();
+        this.lookDirection = this.rotationalVelocity.multiplyVector3(this.lookDirection);
+        this.lookDirection.normalize();
 
         //update up direction
-        this.upDirection = this.rotationalVelocity.multiplyVector3(this.upDirection).normalize();
+        this.upDirection = this.rotationalVelocity.multiplyVector3(this.upDirection);
+        this.upDirection.normalize();
 
         //update strafe direction
-        this.strafeDirection = this.lookDirection.cross(this.upDirection).normalize();
+        this.lookDirection.cross(this.upDirection, this.strafeDirection);
+        this.strafeDirection.normalize();
 
         //TODO make this constraint optional/tunable?
         let cos = this.lookDirection.dot(trueUpVec);
         if (cos > 0.9 || cos < -0.9) {
-            this.lookDirection.copyFrom(original);
+            this.lookDirection.copyFrom(this.reusableRay);
         }
     }
 
@@ -74,8 +76,8 @@ export class Camera {
             ray.addScaledInPlace(this.strafeDirection, dx*x);
             ray.addScaledInPlace(this.upDirection, dy*y);
             if (jitter) {
-                let xJitter = (Math.random()*2 - 1)*dx*jitter;
-                let yJitter = (Math.random()*2 - 1)*dy*jitter;
+                let xJitter = (Math.random()*2 - 1)*dx*jitter/2;
+                let yJitter = (Math.random()*2 - 1)*dy*jitter/2;
                 ray.addScaledInPlace(this.strafeDirection, xJitter);
                 ray.addScaledInPlace(this.upDirection, yJitter);
             }
@@ -106,8 +108,10 @@ export class Camera {
 
     traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0) {
         let rayGen = this.makeRayGenerator(img.width, img.height, AA, jitter);
-        let AANumSquares = Math.pow(AA, 2);
+        let AANumSquares = AA * AA;
         let average = new Uint8Array([0, 0, 0]);
+        let color = new Uint8Array([0, 0, 0]);
+        let blank = new Uint8Array([0, 0, 0]);
         for (let j=img.height-1; j>=0; j--) {
             for (let i=img.width-1; i>=0; i--) {
                 average[0] = 0;
@@ -115,13 +119,11 @@ export class Camera {
                 average[2] = 0;
                 for (let k=0; k<AANumSquares; k++) {
                     let ray = rayGen.next().value as Vector3;
-                    // console.log(ray.elements);
                     let intersect = geomObject.intersect(this.position, ray);
-                    let color: Uint8Array;
                     if (intersect) {
                         color = geomObject.hit(intersect);
                     } else {
-                        color = new Uint8Array([0, 0, 0]);
+                        color = blank;
                     }
 
                     average[0] += color[0]/AANumSquares;

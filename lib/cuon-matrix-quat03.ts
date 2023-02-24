@@ -89,15 +89,20 @@ export class Matrix4 {
 
     multiply = this.concat;
 
-    multiplyVector3(pos) {
+    multiplyVector3(pos: Vector3, destination?: Vector3) {
         var e = this.elements;
         var p = pos.elements;
-        var v = new Vector3();
+        var v = (destination ?? pos).elements;
 
-        v.elements[0] = p[0] * e[0] + p[1] * e[4] + p[2] * e[ 8] + e[12]; // note the added 4th column
-        v.elements[1] = p[0] * e[1] + p[1] * e[5] + p[2] * e[ 9] + e[13]; // (presumes hidden 4th vector element w==1)
-        v.elements[2] = p[0] * e[2] + p[1] * e[6] + p[2] * e[10] + e[14];
-        return v;
+        const x = p[0] * e[0] + p[1] * e[4] + p[2] * e[ 8] + e[12]; // note the added 4th column
+        const y = p[0] * e[1] + p[1] * e[5] + p[2] * e[ 9] + e[13]; // (presumes hidden 4th vector element w==1)
+        const z = p[0] * e[2] + p[1] * e[6] + p[2] * e[10] + e[14];
+
+        v[0] = x;
+        v[1] = y;
+        v[2] = z;
+
+        return (destination ?? pos);
     };
 
     multiplyVector4(pos) {
@@ -510,9 +515,11 @@ export class Matrix4 {
     };
 
     lookAtVecs(position: Vector3, lookDirection: Vector3, upDir: Vector3) {
-        let lookAt = position.add(lookDirection);
+        // let lookAt = position.add(lookDirection);
         let [eyeX, eyeY, eyeZ] = position.elements;
-        let [centerX, centerY, centerZ] = lookAt.elements;
+        let centerX = position.elements[0] + lookDirection.elements[0];
+        let centerY = position.elements[1] + lookDirection.elements[1];
+        let centerZ = position.elements[2] + lookDirection.elements[2];
         let [upX, upY, upZ] = upDir.elements;
         return this.concat(new Matrix4().setLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ));
     }
@@ -574,6 +581,26 @@ export class Matrix4 {
 
 
 };
+
+
+//taken from https://stackoverflow.com/questions/21797299/convert-base64-string-to-arraybuffer
+function _base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+// @ts-ignore
+import wasm from '../C/Vector3.wasm';
+const b = _base64ToArrayBuffer(wasm.split(',')[1]);
+let wasmCode = await WebAssembly.instantiate(b);
+let add_vector3 = (wasmCode.instance.exports.add_vector3 as any);
+let allocate_vector3 = (wasmCode.instance.exports.allocate_vector3 as any);
+let free_vector3 = (wasmCode.instance.exports.free_vector3 as any);
+let vector3_memory = new Float32Array((wasmCode.instance.exports.memory as WebAssembly.Memory).buffer);
 /**
  * Constructor of Vector3
  * If opt_src is specified, new vector is initialized by opt_src.
@@ -582,6 +609,7 @@ export class Matrix4 {
  *     aVec = new Vector3([5,6,7]); // sets aVec to 5,6,7 -- don't forget []!!
  */
 export class Vector3 {
+    pointer: number
     elements: Float32Array;
 
     // constructor(opt_src?) {
@@ -594,13 +622,34 @@ export class Vector3 {
     //     this.elements = v;
     // }
 
-    constructor(opt_src?: Vector3 | number[] | Float32Array) {
-        this.elements = new Float32Array(3);
+    // constructor(opt_src?: Vector3 | number[] | Float32Array) {
+    //     this.elements = new Float32Array(3);
+    //     if (opt_src instanceof Vector3) {
+    //         this.elements.set(opt_src.elements);
+    //     } else if (opt_src) {
+    //         this.elements.set(opt_src);
+    //     }
+    // }
+
+    constructor(opt_src?: Vector3 | number[] | Float32Array, wasm: boolean = false) {
+        console.log('allocating new vector3');
+        if (wasm) {
+            this.pointer = allocate_vector3();
+            this.elements = vector3_memory.subarray(this.pointer, this.pointer+3);
+        } else {
+            this.pointer = null;
+            this.elements = new Float32Array([0, 0, 0]);
+        }
         if (opt_src instanceof Vector3) {
             this.elements.set(opt_src.elements);
         } else if (opt_src) {
             this.elements.set(opt_src);
         }
+        // console.log(this.pointer);
+    }
+
+    destructor() {
+        free_vector3(this.pointer);
     }
 
     // normalize() {
@@ -621,48 +670,68 @@ export class Vector3 {
     // };
 
     normalize() {
-        let magnitude = this.magnitude();
         this.scaleInPlace(1/this.magnitude());
         return this;
     }
 
-    dot(opt_src: Vector3) {
-        var vA = this.elements; // short-hand for the calling object
-        if(opt_src && typeof opt_src === 'object' && opt_src.hasOwnProperty('elements')) {
-            var vB = opt_src.elements;  // short-hand for the Vector3 argument
-            }
-        else {
-            console.log('ERROR! dot() function needs Vec3 argument! \n');
-            return 0.0;
-        }
-        return vA[0]*vB[0] + vA[1]*vB[1] + vA[2]*vB[2];  // compute dot-product
-    };
+    // dot(opt_src: Vector3) {
+    //     var vA = this.elements; // short-hand for the calling object
+    //     if(opt_src && typeof opt_src === 'object' && opt_src.hasOwnProperty('elements')) {
+    //         var vB = opt_src.elements;  // short-hand for the Vector3 argument
+    //         }
+    //     else {
+    //         console.log('ERROR! dot() function needs Vec3 argument! \n');
+    //         return 0.0;
+    //     }
+    //     return vA[0]*vB[0] + vA[1]*vB[1] + vA[2]*vB[2];  // compute dot-product
+    // };
+    dot(other: Vector3) {
+        const elements0 = this.elements;
+        const elements1 = other.elements;
+        return elements0[0] * elements1[0] + elements0[1] * elements1[1] + elements0[2] * elements1[2];
+    }
 
     addScaledInPlace(other: Vector3, factor: number) {
-        this.elements[0] += other.elements[0] * factor;
-        this.elements[1] += other.elements[1] * factor;
-        this.elements[2] += other.elements[2] * factor;
+        const elements0 = this.elements;
+        const elements1 = other.elements;
+        elements0[0] += elements1[0] * factor;
+        elements0[1] += elements1[1] * factor;
+        elements0[2] += elements1[2] * factor;
         return this;
     }
 
 
-    cross(opt_src: Vector3) {
-        var vA = this.elements;   // short-hand for the calling object
-        var ans = new Vector3([0.0, 0.0, 0.0]);  // initialize to zero vector 
-        var vC = ans.elements;    // get the Float32Array contents of 'ans'
-        if(opt_src && typeof opt_src === 'object' && opt_src.hasOwnProperty('elements')) {
-            var vB = opt_src.elements;  // short-hand for the Vector3 argument
-            }
-        else {
-            console.log('ERROR! cross() function needs Vec3 argument! \n');
-            return ans;
-        }
-        // compute cross-product
-        vC[0] = vA[1]*vB[2] - vA[2]*vB[1];  // Cx = Ay*Bz - Az*By
-        vC[1] = vA[2]*vB[0] - vA[0]*vB[2];  // Cy = Az*Bx - Ax*Bz
-        vC[2] = vA[0]*vB[1] - vA[1]*vB[0];  // Cz = Ax*By - Ay*Bx
-        return ans; 
-    };
+    // cross(opt_src: Vector3) {
+    //     var vA = this.elements;   // short-hand for the calling object
+    //     var ans = new Vector3([0.0, 0.0, 0.0]);  // initialize to zero vector 
+    //     var vC = ans.elements;    // get the Float32Array contents of 'ans'
+    //     if(opt_src && typeof opt_src === 'object' && opt_src.hasOwnProperty('elements')) {
+    //         var vB = opt_src.elements;  // short-hand for the Vector3 argument
+    //         }
+    //     else {
+    //         console.log('ERROR! cross() function needs Vec3 argument! \n');
+    //         return ans;
+    //     }
+    //     // compute cross-product
+    //     vC[0] = vA[1]*vB[2] - vA[2]*vB[1];  // Cx = Ay*Bz - Az*By
+    //     vC[1] = vA[2]*vB[0] - vA[0]*vB[2];  // Cy = Az*Bx - Ax*Bz
+    //     vC[2] = vA[0]*vB[1] - vA[1]*vB[0];  // Cz = Ax*By - Ay*Bx
+    //     return ans; 
+    // };
+
+    cross(other: Vector3, destination?: Vector3) {
+        let elements0 = this.elements;
+        let elements1 = other.elements;
+        let elements2 = (destination ?? this).elements;
+
+        const Cx = elements0[1]*elements1[2] - elements0[2]*elements1[1];
+        const Cy = elements0[2]*elements1[0] - elements0[0]*elements1[2];
+        const Cz = elements0[0]*elements1[1] - elements0[1]*elements1[0];
+
+        elements2[0] = Cx;
+        elements2[1] = Cy;
+        elements2[2] = Cz;
+    }
 
     printMe(opt_src?) {
         var res = 5;
@@ -680,36 +749,40 @@ export class Vector3 {
         }
     };
 
-    add(other: Vector3) {
-        return new Vector3(
-            [this.elements[0] + other.elements[0],
-            this.elements[1] + other.elements[1],
-            this.elements[2] + other.elements[2]]
-        );
-    };
+    // add(other: Vector3) {
+    //     return new Vector3(
+    //         [this.elements[0] + other.elements[0],
+    //         this.elements[1] + other.elements[1],
+    //         this.elements[2] + other.elements[2]]
+    //     );
+    // };
 
-    subtract(other: Vector3) {
-        return new Vector3(
-            [this.elements[0] - other.elements[0],
-            this.elements[1] - other.elements[1],
-            this.elements[2] - other.elements[2]]
-        );
-    }
+    // subtract(other: Vector3) {
+    //     return new Vector3(
+    //         [this.elements[0] - other.elements[0],
+    //         this.elements[1] - other.elements[1],
+    //         this.elements[2] - other.elements[2]]
+    //     );
+    // }
 
     magnitude() {
         return Math.sqrt(Math.pow(this.elements[0], 2) + Math.pow(this.elements[1], 2) + Math.pow(this.elements[2], 2));
     }
 
     addInPlace(other: Vector3) { //added for performance reasons
-        this.elements[0] += other.elements[0],
-        this.elements[1] += other.elements[1],
-        this.elements[2] += other.elements[2]
+        const elements0 = this.elements;
+        const elements1 = other.elements;
+        elements0[0] += elements1[0]
+        elements0[1] += elements1[1]
+        elements0[2] += elements1[2]
     }
 
     subtractInPlace(other: Vector3) { //added for performance reasons
-        this.elements[0] -= other.elements[0],
-        this.elements[1] -= other.elements[1],
-        this.elements[2] -= other.elements[2]
+        const elements0 = this.elements;
+        const elements1 = other.elements;
+        elements0[0] -= elements1[0],
+        elements0[1] -= elements1[1],
+        elements0[2] -= elements1[2]
     }
 
     copyFrom(other: Vector3) { //added for performance reasons
@@ -719,32 +792,30 @@ export class Vector3 {
         return this;
     }
 
-    scale(factor) {
-        return new Vector3([
-            this.elements[0] * factor,
-            this.elements[1] * factor,
-            this.elements[2] * factor
-        ]);
-    };
+    // scale(factor) {
+    //     return new Vector3([
+    //         this.elements[0] * factor,
+    //         this.elements[1] * factor,
+    //         this.elements[2] * factor
+    //     ]);
+    // };
 
     scaleInPlace(factor) { //added for performance reasons
-        this.elements[0] *= factor,
-        this.elements[1] *= factor,
-        this.elements[2] *= factor
+        let elements = this.elements;
+        elements[0] *= factor,
+        elements[1] *= factor,
+        elements[2] *= factor
     }
 
-    normScale(factor) {
-        let ans = this.normalize().scale(factor);
-        return ans;
-    }
+    // norm
 
     componentOn(other: Vector3) {
         return this.dot(other) / other.dot(other)
     }
 
-    projectOn(other: Vector3) {
-        return other.scale(this.componentOn(other))
-    }
+    // projectOn(other: Vector3) {
+    //     return other.scale(this.componentOn(other))
+    // }
 
     clampInPlace(min: number, max: number) {
         this.elements[0] = Math.min(Math.max(this.elements[0], min), max);
@@ -752,19 +823,20 @@ export class Vector3 {
         this.elements[2] = Math.min(Math.max(this.elements[2], min), max);
     }
 
-    static random() {
-        let output = new Vector3([
-            Math.random(),
-            Math.random(),
-            Math.random()
-        ]);
-        return output;
-    }
+    // static random() {
+    //     let output = new Vector3([
+    //         Math.random(),
+    //         Math.random(),
+    //         Math.random()
+    //     ]);
+    //     return output;
+    // }
 
     zeroOut() {
-        this.elements[0] = 0.0;
-        this.elements[1] = 0.0;
-        this.elements[2] = 0.0;
+        let elements = this.elements
+        elements[0] = 0.0;
+        elements[1] = 0.0;
+        elements[2] = 0.0;
     }
 
     diag() {
@@ -778,15 +850,20 @@ export class Vector3 {
     }
 
     dotWithDifference(other0: Vector3, other1: Vector3) {
-        return this.elements[0] * (other0.elements[0] - other1.elements[0])
-        + this.elements[1] * (other0.elements[1] - other1.elements[1])
-        + this.elements[2] * (other0.elements[2] - other1.elements[2]);
+        const elements = this.elements;
+        const elements0 = other0.elements;
+        const elements1 = other1.elements
+        return elements[0] * (elements0[0] - elements1[0])
+        + elements[1] * (elements0[1] - elements1[1])
+        + elements[2] * (elements0[2] - elements1[2]);
     }
 
     distanceFrom(other: Vector3) {
-        let xDist = this.elements[0] - other.elements[0];
-        let yDist = this.elements[1] - other.elements[1];
-        let zDist = this.elements[2] - other.elements[2];
+        const elements0 = this.elements;
+        const elements1 = other.elements;
+        let xDist = elements0[0] - elements1[0];
+        let yDist = elements0[1] - elements1[1];
+        let zDist = elements0[2] - elements1[2];
         return Math.sqrt(xDist*xDist + yDist*yDist + zDist*zDist);
     }
 }

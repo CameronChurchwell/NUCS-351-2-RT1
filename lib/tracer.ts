@@ -27,6 +27,7 @@ export class Tracer {
 
     trace() {
         console.log('begin tracing');
+        const start = Date.now();
         this.camera.traceGeometry(this.geometry, this.img, this.AA, this.jitter);
         this.gl.texSubImage2D(
             this.gl.TEXTURE_2D,
@@ -40,6 +41,8 @@ export class Tracer {
             this.img.data
         );
         console.log('end tracing');
+        const end = Date.now();
+        console.log(`Execution time: ${end - start} ms`);
     }
 
     keyDown(kev: KeyboardEvent) {
@@ -57,8 +60,8 @@ export class Tracer {
                 document.getElementById("AA").innerHTML = this.AA.toString();
                 break;
             case "KeyJ":
-                if (this.jitter <= 0.2) {
-                    this.jitter += 0.05;
+                if (this.jitter < 1.0) {
+                    this.jitter += 0.25;
                 } else {
                     this.jitter = 0;
                 }

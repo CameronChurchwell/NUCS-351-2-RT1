@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { boxGraphicsObject, cubeGraphicsObject, groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -9,7 +9,6 @@ import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { GraphicsObject } from "./lib/graphics-object";
 
 let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
@@ -73,7 +72,7 @@ function main() {
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
-    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 100);
+    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 120);
     let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
     let globalScene = new CompositeGeometry([
         teapot0,
@@ -101,7 +100,7 @@ function main() {
         new Vector3([0, 1, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 2, 0.1);
+    tracer = new Tracer(camera, img, globalScene, gl, 4, 1.0);
 
     inputCtx = new InputContextManager([
         camera, tracer

@@ -3,6 +3,8 @@ import { GraphicsObject } from "./graphics-object";
 
 export type Intersection = [Vector3, Geometry] | null
 
+var abs = Math.abs;
+
 export abstract class Geometry {
     reusableVector: Vector3;
 
@@ -67,8 +69,8 @@ export class GridPlaneGeometry extends PlaneGeometry {
         let intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             let [x, y] = intersection[0].elements.slice(0, 2);
-            x = Math.abs(x)+0.5;
-            y = Math.abs(y)+0.5;
+            x = abs(x)+0.5;
+            y = abs(y)+0.5;
             if (x%1 < lineWidth || y%1 < lineWidth) {
                 return intersection;
             } else {
@@ -113,9 +115,16 @@ export class TriangleGoemetry extends PlaneGeometry {
     regularizer: number;
 
     constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, color: Uint8Array) {
-        const side0 = vertex1.subtract(vertex0);
-        const side1 = vertex2.subtract(vertex0);
-        super(vertex0, side0.cross(side1), color);
+        // const side0 = vertex1.subtract(vertex0);
+        let side0 = new Vector3(vertex1);
+        side0.subtractInPlace(vertex0);
+        // const side1 = vertex2.subtract(vertex0);
+        let side1 = new Vector3(vertex2);
+        side1.subtractInPlace(vertex0);
+        let normalVector = new Vector3(side0);
+        normalVector.cross(side1);
+        // super(vertex0, side0.cross(side1), color);
+        super(vertex0, normalVector, color)
         this.side0 = side0;
         this.side1 = side1;
         this.magSq0 = side0.dot(side0);
@@ -125,19 +134,22 @@ export class TriangleGoemetry extends PlaneGeometry {
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
+        let reusableVector = this.reusableVector;
         const intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             const p = intersection[0];
 
-            this.reusableVector.copyFrom(p);
-            this.reusableVector.subtractInPlace(this.offsetVector);
-            let difference = this.reusableVector
+            reusableVector.copyFrom(p);
+            reusableVector.subtractInPlace(this.offsetVector);
+            // let difference = this.reusableVector;
             // const difference = p.subtract(this.offsetVector);
-            const angle0 = difference.dot(this.side0);
-            const angle1 = difference.dot(this.side1);
+            const angle0 = reusableVector.dot(this.side0);
+            const angle1 = reusableVector.dot(this.side1);
 
-            const u = (this.magSq0*angle1 - this.angle*angle0) * this.regularizer;
-            const v = (this.magSq1*angle0 - this.angle*angle1) * this.regularizer;
+            const regularizer = this.regularizer;
+            const angle = this.angle;
+            const u = (this.magSq0*angle1 - angle*angle0) * regularizer;
+            const v = (this.magSq1*angle0 - angle*angle1) * regularizer;
 
             if (u >= 0 && v >= 0 && u + v <= 1) {
                 return intersection;
@@ -156,22 +168,20 @@ export class CompositeGeometry extends Geometry {
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         let minDistance = Infinity;
-        let closestGeometry: Geometry = null;
-        let intersectVector: Vector3 = null;
-        for (let geometryObject of this.geometryObjects) {
+        let closestIntersection: Intersection = null;
+        let geometryObjects = this.geometryObjects;
+        let length = geometryObjects.length;
+        let geometryObject: Geometry = null;
+        for (let i=0; i<length; i++) {
+            geometryObject = geometryObjects[i];
             // let intersection = geometryObject.intersect(new Vector3(raySourcePosition), new Vector3(rayDirection));
             let intersection = geometryObject.intersect(raySourcePosition, rayDirection);
             if (intersection && intersection[0].magnitude() < minDistance) {
-                closestGeometry = intersection[1];
                 minDistance = intersection[0].magnitude();
-                intersectVector = intersection[0];
+                closestIntersection = intersection;
             }
         }
-        if (closestGeometry)
-            return [intersectVector, closestGeometry];
-        else {
-            return null;
-        }
+        return closestIntersection;
     }
 
     hit(intersection: Intersection): Uint8Array {
@@ -208,10 +218,18 @@ export class MeshGeometry extends CompositeGeometry {
                 const vertex0 = new Vector3(vertexArray.slice(start, start+3));
                 const vertex1 = new Vector3(vertexArray.slice(start+floatsPerVertex, start+floatsPerVertex+3));
                 const vertex2 = new Vector3(vertexArray.slice(start+floatsPerVertex*2, start+2*floatsPerVertex+3));
+
+                vertex0.addInPlace(offsetVector);
+                vertex1.addInPlace(offsetVector);
+                vertex2.addInPlace(offsetVector);
+
                 triangles.push(new TriangleGoemetry(
-                    vertex0.add(offsetVector),
-                    vertex1.add(offsetVector),
-                    vertex2.add(offsetVector),
+                    // vertex0.add(offsetVector),
+                    // vertex1.add(offsetVector),
+                    // vertex2.add(offsetVector),
+                    vertex0,
+                    vertex1,
+                    vertex2,
                     new Uint8Array([0xFF, 0xFF, 0xFF])
                 ));
             }
@@ -242,15 +260,13 @@ export class MeshGeometry extends CompositeGeometry {
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
-        let intersection = this.boundingSphere.intersect(raySourcePosition, rayDirection);
-        if (intersection) {
+        if (this.boundingSphere.intersect(raySourcePosition, rayDirection)) {
             return super.intersect(raySourcePosition, rayDirection);
         }
     }
 }
 
 export class SphereGeometry extends DiscGeometry {
-    radius: number;
 
     constructor(center: Vector3, radius: number, color: Uint8Array) {
         super(center, new Vector3([0, 0, 0]), radius, color);
