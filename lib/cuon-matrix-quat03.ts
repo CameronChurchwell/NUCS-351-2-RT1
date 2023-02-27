@@ -597,10 +597,19 @@ function _base64ToArrayBuffer(base64) {
 import wasm from '../C/Vector3.wasm';
 const b = _base64ToArrayBuffer(wasm.split(',')[1]);
 let wasmCode = await WebAssembly.instantiate(b);
-let add_vector3 = (wasmCode.instance.exports.add_vector3 as any);
-let allocate_vector3 = (wasmCode.instance.exports.allocate_vector3 as any);
-let free_vector3 = (wasmCode.instance.exports.free_vector3 as any);
-let vector3_memory = new Float32Array((wasmCode.instance.exports.memory as WebAssembly.Memory).buffer);
+const add_vector3 = (wasmCode.instance.exports.add_vector3 as any);
+const allocate_vector3 = (wasmCode.instance.exports.allocate_vector3 as any);
+const free_vector3 = (wasmCode.instance.exports.free_vector3 as any);
+const sub_vector3 = (wasmCode.instance.exports.sub_vector3 as any);
+const scale_vector3 = (wasmCode.instance.exports.scale_vector3 as any);
+const store_vector3 = (wasmCode.instance.exports.store_vector3 as any);
+const addscale_vector3 = (wasmCode.instance.exports.addscale_vector3 as any);
+const dot_vector3 = (wasmCode.instance.exports.dot_vector3 as any);
+const dotwithdifference_vector3 = (wasmCode.instance.exports.dotwithdifference_vector3 as any);
+const planeintersect_vector3 = (wasmCode.instance.exports.planeintersect_vector3 as any);
+const trianglecontains_vector3 = (wasmCode.instance.exports.trianglecontains_vector3 as any);
+const make_triangle = (wasmCode.instance.exports.make_triangle as any);
+const vector3_memory = new Float32Array((wasmCode.instance.exports.memory as WebAssembly.Memory).buffer);
 /**
  * Constructor of Vector3
  * If opt_src is specified, new vector is initialized by opt_src.
@@ -631,15 +640,10 @@ export class Vector3 {
     //     }
     // }
 
-    constructor(opt_src?: Vector3 | number[] | Float32Array, wasm: boolean = false) {
-        console.log('allocating new vector3');
-        if (wasm) {
-            this.pointer = allocate_vector3();
-            this.elements = vector3_memory.subarray(this.pointer, this.pointer+3);
-        } else {
-            this.pointer = null;
-            this.elements = new Float32Array([0, 0, 0]);
-        }
+    constructor(opt_src?: Vector3 | number[] | Float32Array) {
+        this.pointer = allocate_vector3(); //TODO get 4 programatically?
+        this.elements = vector3_memory.subarray(this.pointer/4, this.pointer/4+3);
+        // console.log(this.pointer, vector3_memory.subarray(this.pointer, this.pointer+3));
         if (opt_src instanceof Vector3) {
             this.elements.set(opt_src.elements);
         } else if (opt_src) {
@@ -648,9 +652,43 @@ export class Vector3 {
         // console.log(this.pointer);
     }
 
-    destructor() {
-        free_vector3(this.pointer);
+    static planeIntersect(raySourcePosition: Vector3, rayDirection: Vector3, normalVec: Vector3, offsetVec: Vector3, destinationVec: Vector3) {
+        return planeintersect_vector3(
+            raySourcePosition.pointer,
+             rayDirection.pointer,
+             normalVec.pointer,
+             offsetVec.pointer,
+             destinationVec.pointer
+        );
     }
+
+    static makeTriangle(offsetVec: Vector3, side0: Vector3, side1: Vector3, magSq0: number, magSq1: number, angle: number): number {
+        return make_triangle(offsetVec.pointer, side0.pointer, side1.pointer, magSq0, magSq1, angle);
+    }
+
+    // static triangleContains(point: Vector3, offsetVec: Vector3, side0: Vector3, side1: Vector3, magSq0: number, magSq1: number, angle: number, regularizer: number) {
+    //     return trianglecontains_vector3(
+    //         point.pointer,
+    //         offsetVec.pointer,
+    //         side0.pointer,
+    //         side1.pointer,
+    //         magSq0,
+    //         magSq1,
+    //         angle,
+    //         regularizer
+    //     )
+    // }
+
+    static triangleContains(point: Vector3, trianglePointer: number) {
+        return trianglecontains_vector3(
+            point.pointer,
+            trianglePointer
+        )
+    }
+
+    // destructor() {
+    //     free_vector3(this.pointer);
+    // }
 
     // normalize() {
     //     var v = this.elements;
@@ -686,18 +724,20 @@ export class Vector3 {
     //     return vA[0]*vB[0] + vA[1]*vB[1] + vA[2]*vB[2];  // compute dot-product
     // };
     dot(other: Vector3) {
-        const elements0 = this.elements;
-        const elements1 = other.elements;
-        return elements0[0] * elements1[0] + elements0[1] * elements1[1] + elements0[2] * elements1[2];
+        // const elements0 = this.elements;
+        // const elements1 = other.elements;
+        // return elements0[0] * elements1[0] + elements0[1] * elements1[1] + elements0[2] * elements1[2];
+        return dot_vector3(this.pointer, other.pointer);
     }
 
     addScaledInPlace(other: Vector3, factor: number) {
-        const elements0 = this.elements;
-        const elements1 = other.elements;
-        elements0[0] += elements1[0] * factor;
-        elements0[1] += elements1[1] * factor;
-        elements0[2] += elements1[2] * factor;
-        return this;
+        // const elements0 = this.elements;
+        // const elements1 = other.elements;
+        // elements0[0] += elements1[0] * factor;
+        // elements0[1] += elements1[1] * factor;
+        // elements0[2] += elements1[2] * factor;
+        // return this;
+        addscale_vector3(this.pointer, other.pointer, factor, this.pointer);
     }
 
 
@@ -770,25 +810,28 @@ export class Vector3 {
     }
 
     addInPlace(other: Vector3) { //added for performance reasons
-        const elements0 = this.elements;
-        const elements1 = other.elements;
-        elements0[0] += elements1[0]
-        elements0[1] += elements1[1]
-        elements0[2] += elements1[2]
+        // const elements0 = this.elements;
+        // const elements1 = other.elements;
+        // elements0[0] += elements1[0]
+        // elements0[1] += elements1[1]
+        // elements0[2] += elements1[2]
+        add_vector3(this.pointer, other.pointer, this.pointer);
     }
 
     subtractInPlace(other: Vector3) { //added for performance reasons
-        const elements0 = this.elements;
-        const elements1 = other.elements;
-        elements0[0] -= elements1[0],
-        elements0[1] -= elements1[1],
-        elements0[2] -= elements1[2]
+        // const elements0 = this.elements;
+        // const elements1 = other.elements;
+        // elements0[0] -= elements1[0],
+        // elements0[1] -= elements1[1],
+        // elements0[2] -= elements1[2]
+        sub_vector3(this.pointer, other.pointer, this.pointer);
     }
 
     copyFrom(other: Vector3) { //added for performance reasons
-        this.elements[0] = other.elements[0];
-        this.elements[1] = other.elements[1];
-        this.elements[2] = other.elements[2];
+        // this.elements[0] = other.elements[0];
+        // this.elements[1] = other.elements[1];
+        // this.elements[2] = other.elements[2];
+        store_vector3(other.pointer, this.pointer);
         return this;
     }
 
@@ -800,11 +843,12 @@ export class Vector3 {
     //     ]);
     // };
 
-    scaleInPlace(factor) { //added for performance reasons
-        let elements = this.elements;
-        elements[0] *= factor,
-        elements[1] *= factor,
-        elements[2] *= factor
+    scaleInPlace(factor: number) { //added for performance reasons
+        // let elements = this.elements;
+        // elements[0] *= factor,
+        // elements[1] *= factor,
+        // elements[2] *= factor
+        scale_vector3(this.pointer, factor, this.pointer);
     }
 
     // norm
@@ -850,12 +894,13 @@ export class Vector3 {
     }
 
     dotWithDifference(other0: Vector3, other1: Vector3) {
-        const elements = this.elements;
-        const elements0 = other0.elements;
-        const elements1 = other1.elements
-        return elements[0] * (elements0[0] - elements1[0])
-        + elements[1] * (elements0[1] - elements1[1])
-        + elements[2] * (elements0[2] - elements1[2]);
+        // const elements = this.elements;
+        // const elements0 = other0.elements;
+        // const elements1 = other1.elements
+        // return elements[0] * (elements0[0] - elements1[0])
+        // + elements[1] * (elements0[1] - elements1[1])
+        // + elements[2] * (elements0[2] - elements1[2]);
+        return dotwithdifference_vector3(this.pointer, other0.pointer, other1.pointer);
     }
 
     distanceFrom(other: Vector3) {

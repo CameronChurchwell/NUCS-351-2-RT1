@@ -2,6 +2,7 @@ import { ImageBuffer } from "./buffer";
 import { Camera } from "./camera";
 import { Vector3 } from "./cuon-matrix-quat03";
 import { Geometry } from "./geometry";
+import { Light } from "./light";
 import { CallbackMap } from "./user-input";
 
 export class Tracer {
@@ -12,8 +13,9 @@ export class Tracer {
     callbackMap: CallbackMap;
     AA: number;
     jitter: number;
+    lights: Light[];
 
-    constructor(camera: Camera, img: ImageBuffer, geometry: Geometry, gl: WebGL2RenderingContextStrict, AA: number = 1, jitter: number = 0) {
+    constructor(camera: Camera, img: ImageBuffer, geometry: Geometry, gl: WebGL2RenderingContextStrict, AA: number = 1, jitter: number = 0, lights?: Light[]) {
         this.camera = camera;
         this.img = img;
         this.geometry = geometry;
@@ -23,6 +25,7 @@ export class Tracer {
         this.callbackMap = new Map([
             ['keyDown', this.keyDown.bind(this)]
         ]);
+        this.lights = lights ?? [];
     }
 
     trace() {

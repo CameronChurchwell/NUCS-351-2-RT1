@@ -14,7 +14,11 @@ export abstract class Geometry {
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         throw new Error("Not implemented!");
-    };
+    }
+
+    surfaceNormal(position: Vector3): Vector3 {
+        throw new Error("Not implemented!");
+    }
 
     hit(intersection: Intersection): Uint8Array {
         throw new Error("Not implemented!");
@@ -33,27 +37,35 @@ export class PlaneGeometry extends Geometry {
         this.color = color;
     }
 
+    surfaceNormal(position: Vector3): Vector3 {
+        return this.normalVector;
+    }
+
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
-        // this.reusableVector.copyFrom(this.offsetVector);
-        let numerator = this.normalVector.dotWithDifference(this.offsetVector, raySourcePosition);
-        let denominator = rayDirection.dot(this.normalVector);
-        if (numerator == 0) {
-            this.reusableVector.copyFrom(this.normalVector);
-            this.reusableVector.scaleInPlace(this.normalVector.dot(this.offsetVector));
+        // // this.reusableVector.copyFrom(this.offsetVector);
+        // let numerator = this.normalVector.dotWithDifference(this.offsetVector, raySourcePosition);
+        // let denominator = rayDirection.dot(this.normalVector);
+        // if (numerator == 0) {
+        //     this.reusableVector.copyFrom(this.normalVector);
+        //     this.reusableVector.scaleInPlace(this.normalVector.dot(this.offsetVector));
+        //     return [this.reusableVector, this];
+        // }
+        // if (denominator == 0) {
+        //     return null;
+        // } else {
+        //     let t = numerator/denominator;
+        //     if (t < 0) {
+        //         return null;
+        //     } else {
+        //         this.reusableVector.copyFrom(rayDirection);
+        //         this.reusableVector.scaleInPlace(t);
+        //         this.reusableVector.addInPlace(raySourcePosition);
+        //         return [this.reusableVector, this];
+        //     }
+        // }
+        let result = Vector3.planeIntersect(raySourcePosition, rayDirection, this.normalVector, this.offsetVector, this.reusableVector);
+        if (result) {
             return [this.reusableVector, this];
-        }
-        if (denominator == 0) {
-            return null;
-        } else {
-            let t = numerator/denominator;
-            if (t < 0) {
-                return null;
-            } else {
-                this.reusableVector.copyFrom(rayDirection);
-                this.reusableVector.scaleInPlace(t);
-                this.reusableVector.addInPlace(raySourcePosition);
-                return [this.reusableVector, this];
-            }
         }
     }
 
@@ -113,6 +125,7 @@ export class TriangleGoemetry extends PlaneGeometry {
     magSq1: number;
     angle: number;
     regularizer: number;
+    trianglePointer: number;
 
     constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, color: Uint8Array) {
         // const side0 = vertex1.subtract(vertex0);
@@ -123,22 +136,68 @@ export class TriangleGoemetry extends PlaneGeometry {
         side1.subtractInPlace(vertex0);
         let normalVector = new Vector3(side0);
         normalVector.cross(side1);
+        normalVector.scaleInPlace(-1);
         // super(vertex0, side0.cross(side1), color);
-        super(vertex0, normalVector, color)
+
+        super(vertex0, normalVector, color);
+
         this.side0 = side0;
         this.side1 = side1;
         this.magSq0 = side0.dot(side0);
         this.magSq1 = side1.dot(side1);
         this.angle = side0.dot(side1);
-        this.regularizer = 1/(this.magSq0*this.magSq1-this.angle*this.angle);
+        let regularizer = 1/(this.magSq0*this.magSq1-this.angle*this.angle);
+
+        this.magSq0 *= regularizer;
+        this.magSq1 *= regularizer;
+        this.angle *= regularizer;
+        
+        // let magSq0 = side0.dot(side0);
+        // let magSq1 = side1.dot(side1);
+        // let angle = side0.dot(side1);
+        // let regularizer = magSq0*magSq1-angle*angle;
+        // magSq0 /= regularizer;
+        // magSq1 /= regularizer;
+        // angle /= regularizer;
+        // console.log(regularizer, magSq0, magSq1, angle);
+        // this.trianglePointer = Vector3.makeTriangle(this.offsetVector, side0, side1, magSq0, magSq1, angle);
+    }
+
+    planeIntersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, TriangleGoemetry] {
+        return super.intersect(raySourcePosition, rayDirection) as [Vector3, TriangleGoemetry];
+    }
+
+    triangleIntersect(point: Vector3): Intersection {
+        let reusableVector = this.reusableVector;
+        reusableVector.copyFrom(point);
+        reusableVector.subtractInPlace(this.offsetVector);
+        // let difference = this.reusableVector;
+        // const difference = p.subtract(this.offsetVector);
+        const angle0 = reusableVector.dot(this.side0);
+        const angle1 = reusableVector.dot(this.side1);
+
+        const regularizer = this.regularizer;
+        const angle = this.angle;
+        // const u = (this.magSq0*angle1 - angle*angle0) * regularizer;
+        // const v = (this.magSq1*angle0 - angle*angle1) * regularizer;
+        const u = (this.magSq0*angle1 - angle*angle0);
+        const v = (this.magSq1*angle0 - angle*angle1);
+
+        if (u >= 0 && v >= 0 && u + v <= 1) {
+            return [point, this];
+        }
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
-        let reusableVector = this.reusableVector;
         const intersection = super.intersect(raySourcePosition, rayDirection);
         if (intersection) {
             const p = intersection[0];
 
+            // if (Vector3.triangleContains(p, this.trianglePointer)) {
+            //     return intersection;
+            // }
+
+            let reusableVector = this.reusableVector;
             reusableVector.copyFrom(p);
             reusableVector.subtractInPlace(this.offsetVector);
             // let difference = this.reusableVector;
@@ -148,8 +207,10 @@ export class TriangleGoemetry extends PlaneGeometry {
 
             const regularizer = this.regularizer;
             const angle = this.angle;
-            const u = (this.magSq0*angle1 - angle*angle0) * regularizer;
-            const v = (this.magSq1*angle0 - angle*angle1) * regularizer;
+            // const u = (this.magSq0*angle1 - angle*angle0) * regularizer;
+            // const v = (this.magSq1*angle0 - angle*angle1) * regularizer;
+            const u = (this.magSq0*angle1 - angle*angle0);
+            const v = (this.magSq1*angle0 - angle*angle1);
 
             if (u >= 0 && v >= 0 && u + v <= 1) {
                 return intersection;
@@ -184,8 +245,36 @@ export class CompositeGeometry extends Geometry {
         return closestIntersection;
     }
 
+    surfaceNormal(position: Vector3): Vector3 {
+        throw new Error("Not implemented for CompositeGeometry!");
+    }
+
     hit(intersection: Intersection): Uint8Array {
         return intersection[1].hit(intersection);
+    }
+}
+
+export class TriangleCluster extends CompositeGeometry {
+    declare geometryObjects: TriangleGoemetry[];
+
+    constructor(triangles: TriangleGoemetry[]) {
+        super(triangles);
+    }
+
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
+        let intersections: [Vector3, TriangleGoemetry][] = [];
+        for (let triangle of this.geometryObjects) {
+            let intersection = triangle.planeIntersect(raySourcePosition, rayDirection);
+            if (intersection) {
+                intersections.push(intersection)
+            }
+        }
+        intersections.sort((a, b) => a[0].magnitude() - b[0].magnitude());
+        for (let intersection of intersections) {
+            if(intersection[1].triangleIntersect(intersection[0])) {
+                return intersection;
+            }
+        }
     }
 }
 
@@ -237,6 +326,7 @@ export class MeshGeometry extends CompositeGeometry {
             super(triangles);
             this.boundingSphere = new BoundingSphereGeometry(center, maxDistance);
         } else if (chunkSize > 0) {
+            // let subMeshes: (MeshGeometry|TriangleCluster)[] = [];
             let subMeshes: MeshGeometry[] = [];
             let boundingSpheres: BoundingSphereGeometry[] = [];
             let numTriangles = numVertices / 3;
@@ -249,7 +339,12 @@ export class MeshGeometry extends CompositeGeometry {
                 let count = floatsPerVertex*chunkSize*3;
                 // console.log("start, count:", start, count);
                 let vertices = vertexArray.slice(start, start+count);
-                subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/2 > 10 ? chunkSize/10 : Infinity));
+                // if (chunkSize/2 > 10) {
+                //     subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/10))
+                // } else {
+                //     subMeshes.push
+                // }
+                subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/2 > 10 ? chunkSize/2 : Infinity));
                 boundingSpheres.push(subMeshes[subMeshes.length-1].boundingSphere);
             }
             super(subMeshes);
@@ -259,10 +354,14 @@ export class MeshGeometry extends CompositeGeometry {
         }
     }
 
-    intersect(raySourcePosition: Vector3, rayDirection: Vector3): [Vector3, Geometry] {
+    intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         if (this.boundingSphere.intersect(raySourcePosition, rayDirection)) {
             return super.intersect(raySourcePosition, rayDirection);
         }
+    }
+
+    surfaceNormal(position: Vector3): Vector3 {
+        throw new Error("Not implemented for MeshGeometry!");
     }
 }
 
@@ -284,6 +383,13 @@ export class SphereGeometry extends DiscGeometry {
             position.addScaledInPlace(this.normalVector, -height)
             return [position, this];
         }
+    }
+
+    surfaceNormal(position: Vector3): Vector3 {
+        this.reusableVector.copyFrom(position);
+        this.reusableVector.subtractInPlace(this.offsetVector);
+        this.reusableVector.normalize();
+        return this.reusableVector;
     }
 }
 

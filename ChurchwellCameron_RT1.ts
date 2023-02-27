@@ -10,7 +10,7 @@ import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 
-let resolution = 512;
+let resolution = 256;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -48,35 +48,35 @@ function main() {
         new Vector3([0, 0, 1]),
         new Uint8Array([0xFF, 0xFF, 0xFF])
     );
-    let disc = new DiscGeometry(
-        new Vector3([5, 5, 1]),
-        new Vector3([1, 0, 0]),
-        2,
-        new Uint8Array([0xFF, 0xFF, 0xFF])
-    );
-    let wallPlane = new GridPlaneGeometry(
-        new Vector3([100, 0, 0]),
-        new Vector3([1, 0, 0]),
-        new Uint8Array([0xFF, 0xFF, 0])
-    )
-    let triangle = new TriangleGoemetry(
-        new Vector3([10, 0, 0]),
-        new Vector3([10, 0, 4]),
-        new Vector3([10, 4, 0,]),
-        new Uint8Array([0xFF, 0xFF, 0xFF])
-    );
+    // let disc = new DiscGeometry(
+    //     new Vector3([5, 5, 1]),
+    //     new Vector3([1, 0, 0]),
+    //     2,
+    //     new Uint8Array([0xFF, 0xFF, 0xFF])
+    // );
+    // let wallPlane = new GridPlaneGeometry(
+    //     new Vector3([100, 0, 0]),
+    //     new Vector3([1, 0, 0]),
+    //     new Uint8Array([0xFF, 0xFF, 0])
+    // )
+    // let triangle = new TriangleGoemetry(
+    //     new Vector3([10, 0, 0]),
+    //     new Vector3([10, 0, 4]),
+    //     new Vector3([10, 4, 0,]),
+    //     new Uint8Array([0xFF, 0xFF, 0xFF])
+    // );
     let sphere = new SphereGeometry(
-        new Vector3([0, 0, 1]),
+        new Vector3([0, 10, 1]),
         2,
         new Uint8Array([0xFF, 0xFF, 0xFF])
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 120);
-    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
+    // let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
     let globalScene = new CompositeGeometry([
         teapot0,
-        teapot1,
+        // teapot1,
         // sphere,
         groundPlane,
     ]);
@@ -100,7 +100,7 @@ function main() {
         new Vector3([0, 1, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 4, 1.0);
+    tracer = new Tracer(camera, img, globalScene, gl, 1, 1.0);
 
     inputCtx = new InputContextManager([
         camera, tracer
@@ -178,9 +178,9 @@ function draw(gl: WebGL2RenderingContextStrict) {
     mvpMat.translate(0, 8, 0);
     gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     teapotGraphicsObject.draw();
-    mvpMat.translate(8, -8, 0);
-    gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    teapotGraphicsObject.draw();
+    // mvpMat.translate(8, -8, 0);
+    // gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
+    // teapotGraphicsObject.draw();
 
     //Draw right (raytraced) view
     // tracer.trace(); //real time test
