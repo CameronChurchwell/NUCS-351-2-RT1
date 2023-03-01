@@ -122,7 +122,7 @@ export class Camera {
         let light = new Light(
             new Vector3([0, 0, 5]),
             new Float32Array([0.25, 0.25, 0.25]),
-            new Float32Array([0.5, 0.5, 0.5]),
+            new Float32Array([0.75, 0.75, 0.75]),
             new Float32Array([0.5, 0.5, 0.5])
         );
 
@@ -136,40 +136,35 @@ export class Camera {
                     let ray = rayGen.next().value as Vector3;
                     let intersect = geomObject.intersect(this.position, ray);
                     if (intersect) {
-                        
+                        //get light vec
                         color.set(intersect[1].hit(intersect));
-                        // position.copyFrom(intersect[0]);
-                        //TODO add bouncing
-                        // reflection.copyFrom(intersect[0]);
-
-                        //"good" code
                         lightVec.copyFrom(light.position);
                         lightVec.subtractInPlace(intersect[0]);
+                        let lightDistance = lightVec.magnitude();
                         lightVec.normalize();
+                        
+                        //detect light blocking intersections
+                        let epsilon = 1e-3;
+                        reflection.copyFrom(intersect[0]);
+                        reflection.addScaledInPlace(lightVec, epsilon);
+                        let lightIntersect = geomObject.intersect(reflection, lightVec);
+                        if (lightIntersect && lightIntersect[0].distanceFrom(reflection) < lightDistance) {
+                            color.set(blank);
+                            continue;
+                        }
+
+                        //compute phong lighting
                         normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
                         let nDotL = Math.max(lightVec.dot(normal), 0);
                         reflection.copyFrom(normal);
                         reflection.scaleInPlace(2*normal.dot(lightVec));
                         reflection.subtractInPlace(lightVec);
                         let rDotV = -Math.min(reflection.dot(this.lookDirection), 0);
-                        let specular = Math.pow(rDotV, 6);
-
-                        
-                        // color[0] = color[0] * light.ambient[0];
-                        // color[1] = color[1] * light.ambient[1];
-                        // color[2] = color[2] * light.ambient[2];
+                        let specular = Math.pow(rDotV, 10);
 
                         color[0] = Math.min(color[0] * light.ambient[0] + color[0] * light.diffuse[0] * nDotL + color[0] * light.specular[0] * specular, 255);
                         color[1] = Math.min(color[1] * light.ambient[1] + color[1] * light.diffuse[1] * nDotL + color[1] * light.specular[1] * specular, 255);
                         color[2] = Math.min(color[2] * light.ambient[2] + color[2] * light.diffuse[2] * nDotL + color[2] * light.specular[2] * specular, 255);
-
-                        // color[0] = color[0] * light.specular[0] * specular;
-                        // color[1] = color[1] * light.specular[1] * specular;
-                        // color[2] = color[2] * light.specular[2] * specular;
-
-
-                        // color[1] = color[1] * light.ambient[1] + color[1] * light.diffuse[1] * nDotL;
-                        // color[2] = color[2] * light.ambient[2] + color[2] * light.diffuse[2] * nDotL;
                     } else {
                         color.set(blank);
                     }
