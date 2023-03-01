@@ -4,13 +4,13 @@ import { groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } fro
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry, SphereGeometry } from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry, SphereGeometry, PlaneGeometry } from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 
-let resolution = 256;
+let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -46,7 +46,7 @@ function main() {
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
         new Vector3([0, 0, 1]),
-        new Uint8Array([0xFF, 0xFF, 0xFF])
+        new Uint8Array([255, 255, 255])
     );
     // let disc = new DiscGeometry(
     //     new Vector3([5, 5, 1]),
@@ -72,13 +72,15 @@ function main() {
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
-    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 120);
+    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000);
+    // let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), Infinity);
+    console.log(teapot0);
     // let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
     let globalScene = new CompositeGeometry([
-        teapot0,
         // teapot1,
         // sphere,
         groundPlane,
+        teapot0,
     ]);
 
     // Retrieve <canvas> element

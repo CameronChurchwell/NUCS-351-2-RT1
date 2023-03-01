@@ -4,10 +4,12 @@ export class Light {
     position: Vector3;
     ambient: Float32Array;
     diffuse: Float32Array;
+    specular: Float32Array;
 
-    constructor(position: Vector3, ambient: Float32Array, diffuse: Float32Array) {
+    constructor(position: Vector3, ambient: Float32Array, diffuse: Float32Array, specular: Float32Array) {
         this.position = position;
         this.ambient = ambient;
         this.diffuse = diffuse;
+        this.specular = specular;
     }
 }
