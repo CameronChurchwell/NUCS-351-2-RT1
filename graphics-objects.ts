@@ -19,7 +19,8 @@ export let textureGraphicsObject = new GraphicsObject(textureVerts, WebGL2Render
 // let cubeVerts = makeMiniCube();
 // export let cubeGraphicsObject = new GraphicsObject(cubeVerts, WebGL2RenderingContext.TRIANGLES, 7);
 
-let teapotVerts = require('./vertex-objects/teapot-vertices.json');
+// let teapotVerts = require('./vertex-objects/teapot-vertices.json');
+let teapotVerts = require('./vertex-objects/teapot-normal-vertices.json');
 export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7);
 
 // let particleVerts = new Float32Array([0, 0, 0, 0, 1, 1, 1]);

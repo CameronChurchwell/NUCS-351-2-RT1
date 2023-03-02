@@ -9,6 +9,7 @@ import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
+import { getWebGLContext } from "./lib/cuon-utils";
 
 let resolution = 256;
 var img = new ImageBuffer(resolution, resolution);
@@ -86,6 +87,10 @@ function main() {
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
     var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
+    // var gl = getWebGLContext(canvas) as any as WebGL2RenderingContextStrict;
+
+    gl.enable(gl.DEPTH_TEST); //disabled is default
+
     if (!gl) {
         console.log('Failed to get the rendering context for WebGL2');
         return;
@@ -181,7 +186,8 @@ function animate(timeStep) {
 
 function draw(gl: WebGL2RenderingContextStrict) {
     // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.clear(gl.DEPTH_BUFFER_BIT);
 
     //Draw left (rasterized) view
     leftViewport.focusWithContext(gl);

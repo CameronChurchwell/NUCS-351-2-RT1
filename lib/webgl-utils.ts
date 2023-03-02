@@ -103,14 +103,14 @@ var OTHER_PROBLEM = '' +
  *     creation attributes you want to pass in.
  * @param {function:(msg)} opt_onError An function to call
  *     if there is an error during creation.
- * @return {WebGLRenderingContext} The created context.
+ * @return {WebGL2RenderingContext} The created context.
  */
 var setupWebGL = function(canvas, opt_attribs?, opt_onError?) {
   function handleCreationError(msg) {
       var container = document.getElementsByTagName("body")[0];
     //var container = canvas.parentNode;
     if (container) {
-      var str = window.WebGLRenderingContext ?
+      var str = window.WebGL2RenderingContext ?
            OTHER_PROBLEM :
            GET_A_WEBGL_BROWSER;
       if (msg) {
@@ -129,7 +129,7 @@ var setupWebGL = function(canvas, opt_attribs?, opt_onError?) {
   }
   var context = create3DContext(canvas, opt_attribs);
   if (!context) {
-    if (!window.WebGLRenderingContext) {
+    if (!window.WebGL2RenderingContext) {
       opt_onError("");
     } else {
       opt_onError("");
@@ -146,7 +146,8 @@ var setupWebGL = function(canvas, opt_attribs?, opt_onError?) {
  * @return {!WebGLContext} The created context.
  */
 var create3DContext = function(canvas, opt_attribs) {
-  var names = ["webgl", "experimental-webgl", "webkit-3d", "moz-webgl"];
+//   var names = ["webgl", "experimental-webgl", "webkit-3d", "moz-webgl"];
+    var names = ['webgl2'];
   var context = null;
   for (var ii = 0; ii < names.length; ++ii) {
     try {

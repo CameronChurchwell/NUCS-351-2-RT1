@@ -3,7 +3,7 @@ import { GraphicsObject } from "./graphics-object";
 
 export class GraphicsSystem {
     graphicsObjectArray: Array<InstanceType<typeof GraphicsObject>>;
-    gl_object: WebGLRenderingContextStrict;
+    gl_object: WebGL2RenderingContextStrict;
     numGraphicsObjects: number;
     
     vertexArrayLengths: Array<number>;
