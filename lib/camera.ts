@@ -145,6 +145,7 @@ export class Camera {
                         
                         //detect light blocking intersections
                         let epsilon = 1e-3;
+                        // let epsilon = 0;
                         reflection.copyFrom(intersect[0]);
                         reflection.addScaledInPlace(lightVec, epsilon);
                         let lightIntersect = geomObject.intersect(reflection, lightVec);
@@ -153,14 +154,31 @@ export class Camera {
                             continue;
                         }
 
-                        //compute phong lighting
+                        //compute reflection vector
                         normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
-                        let nDotL = Math.max(lightVec.dot(normal), 0);
                         reflection.copyFrom(normal);
                         reflection.scaleInPlace(2*normal.dot(lightVec));
                         reflection.subtractInPlace(lightVec);
+                        
+                        //compute phong lighting constants
+                        let nDotL = Math.max(lightVec.dot(normal), 0);
                         let rDotV = -Math.min(reflection.dot(this.lookDirection), 0);
                         let specular = Math.pow(rDotV, 10);
+
+                        //compute mirror intersection
+                        normal.copyFrom(intersect[0]);
+                        normal.addScaledInPlace(reflection, epsilon);
+                        let mirrorIntersect = geomObject.intersect(normal, reflection);
+                        let mixing = 0.25;
+                        let otherColor = new Uint8Array([0, 0, 0]);
+                        if (mirrorIntersect) {
+                            otherColor = mirrorIntersect[1].hit(mirrorIntersect);
+                        }
+
+                        color[0] = (1-mixing) * color[0] + mixing * otherColor[0];
+                        color[1] = (1-mixing) * color[1] + mixing * otherColor[1];
+                        color[2] = (1-mixing) * color[2] + mixing * otherColor[2];
+
 
                         color[0] = Math.min(color[0] * light.ambient[0] + color[0] * light.diffuse[0] * nDotL + color[0] * light.specular[0] * specular, 255);
                         color[1] = Math.min(color[1] * light.ambient[1] + color[1] * light.diffuse[1] * nDotL + color[1] * light.specular[1] * specular, 255);

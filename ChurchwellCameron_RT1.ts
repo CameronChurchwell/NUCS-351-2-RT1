@@ -10,7 +10,7 @@ import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 
-let resolution = 256;
+let resolution = 1024;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -46,7 +46,7 @@ function main() {
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
         new Vector3([0, 0, 1]),
-        new Uint8Array([255, 255, 255])
+        new Uint8Array([255, 0, 0])
     );
     // let disc = new DiscGeometry(
     //     new Vector3([5, 5, 1]),
