@@ -10,7 +10,7 @@ import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 
-let resolution = 1024;
+let resolution = 256;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -93,8 +93,21 @@ function main() {
 
     leftViewport = new Viewport(0, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
     rightViewport = new Viewport(gl.drawingBufferWidth/2, 0, gl.drawingBufferWidth/2, gl.drawingBufferHeight);
-
     perspective = new Perspective(35, canvas.width/2/canvas.height, 1, 100);
+
+    window.addEventListener('resize', () => {
+        canvas.width = innerWidth - 16;
+        canvas.height = innerHeight * 0.6;
+
+        leftViewport.width = canvas.width/2;
+        leftViewport.height = canvas.height;
+        rightViewport.width = canvas.width/2;
+        rightViewport.xOffset = canvas.width/2;
+        rightViewport.height = canvas.height;
+
+        perspective.aspect = canvas.width/2/canvas.height;
+    })
+
 
     camera = new Camera(
         new Vector3([0, 0, 1]),
@@ -240,6 +253,10 @@ function updateLocationsRaytraced(gl: WebGL2RenderingContextStrict) {
         2*4
     );
     gl.enableVertexAttribArray(a_TexCoordID);
+}
+
+function resize() {
+
 }
 
 main();

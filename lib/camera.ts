@@ -118,7 +118,6 @@ export class Camera {
         let lightVec: Vector3 = new Vector3();
         let normal = new Vector3();
         //assume only 1 light //TODO remove
-        //assume it exists at the origin
         let light = new Light(
             new Vector3([0, 0, 5]),
             new Float32Array([0.25, 0.25, 0.25]),

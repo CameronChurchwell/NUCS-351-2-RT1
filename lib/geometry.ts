@@ -224,7 +224,6 @@ export class TriangleGoemetry extends PlaneGeometry {
     }
 
     hit(intersection: [Vector3, Geometry]): Uint8Array {
-        // return new Uint8Array([intersection[0].elements[0] % 1 * 255, intersection[0].elements[1] % 1 * 255, intersection[0].elements[2] % 1 * 255]);
         return new Uint8Array([255, 255, 255]);
     }
 }
@@ -240,26 +239,6 @@ export class CompositeGeometry extends Geometry {
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
-        // let intersections: Intersection[] = [];
-        // // console.log('---------------------');
-        // for (let geomObject of this.geometryObjects) {
-        //     this.reusableVector.copyFrom(raySourcePosition);
-        //     this.secondReusableVector.copyFrom(rayDirection);
-        //     // console.log('before:', rayDirection.elements[0], rayDirection.elements[1], rayDirection.elements[2]);
-        //     let intersection = geomObject.intersect(this.reusableVector, this.secondReusableVector);
-        //     // console.log('after:', rayDirection.elements[0], rayDirection.elements[1], rayDirection.elements[2]);
-        //     if (intersection) {
-        //         // console.log('hit');
-        //         intersections.push(intersection);
-        //     }
-        // }
-        // if (intersections.length > 1) {
-        //     console.log(intersections);
-        //     // throw new Error("bruh");
-        //     console.log(intersections.length);
-            
-        // }
-
         let minDistance = Infinity;
         let closestIndex = null;
         // let closestIntersection: Intersection = null;
@@ -276,11 +255,6 @@ export class CompositeGeometry extends Geometry {
                     closestIndex = i;
                 }
             }
-            // if (intersection && intersection[0].distanceFrom(raySourcePosition) < minDistance) {
-            //     minDistance = intersection[0].distanceFrom(raySourcePosition);
-            //     console.log('new min distance: ', minDistance);
-            //     closestIntersection = intersection;
-            // }
         }
         if (closestIndex === null) {
             return null;
@@ -361,16 +335,12 @@ export class MeshGeometry extends CompositeGeometry {
                 vertex2.addInPlace(offsetVector);
 
                 triangles.push(new TriangleGoemetry(
-                    // vertex0.add(offsetVector),
-                    // vertex1.add(offsetVector),
-                    // vertex2.add(offsetVector),
                     vertex0,
                     vertex1,
                     vertex2,
                     new Uint8Array([0xFF, 0xFF, 0xFF])
                 ));
             }
-            // maxDistance += 0.1;
             
             // let cluster = new TriangleCluster(triangles);
             // super([cluster]);
@@ -380,21 +350,10 @@ export class MeshGeometry extends CompositeGeometry {
             let subMeshes: MeshGeometry[] = [];
             let boundingSpheres: BoundingSphereGeometry[] = [];
             let numTriangles = numVertices / 3;
-            // console.log("numVertices:", numVertices);
-            // console.log("numTriangles:", numTriangles);
-            // console.log("chunkSize:", chunkSize);
             for (let i=0; i < numTriangles; i += chunkSize) {
-                // console.log(i);
                 let start = i*floatsPerVertex*3;
                 let count = floatsPerVertex*chunkSize*3;
-                // console.log("start, count:", start, count);
                 let vertices = vertexArray.slice(start, start+count);
-                // if (chunkSize/2 > 10) {
-                //     subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/10))
-                // } else {
-                //     subMeshes.push
-                // }
-                // subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/5 > 5 ? chunkSize/5 : Infinity));
                 subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/5 > 5 ? chunkSize/5 : Infinity));
                 boundingSpheres.push(subMeshes[subMeshes.length-1].boundingSphere);
             }
@@ -407,7 +366,6 @@ export class MeshGeometry extends CompositeGeometry {
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
         if (this.boundingSphere.intersect(raySourcePosition, rayDirection)) {
-            // return this.boundingSphere.intersect(raySourcePosition, rayDirection)
             return super.intersect(raySourcePosition, rayDirection);
         }
         return null;
@@ -430,7 +388,6 @@ export class SphereGeometry extends DiscGeometry {
         if (intersection) {
             let position = intersection[0];
             let distanceFromCenter = position.distanceFrom(this.offsetVector);
-            // let distanceFromCenter = position.subtract(this.offsetVector).magnitude();
             //negative here is because normal vector points away from camera
             let height = Math.sqrt(Math.pow(this.radius, 2) - Math.pow(distanceFromCenter, 2));
             position.addScaledInPlace(this.normalVector, -height)
@@ -474,8 +431,6 @@ export class BoundingSphereGeometry extends DiscGeometry {
     }
 
     hit(intersection: [Vector3, Geometry]): Uint8Array {
-        //TODO fix back so that we have proper error handling
-        // throw new Error("No hits should be called on bounding geometry");
-        return new Uint8Array([0, 0, 255]);
+        throw new Error("No hits should be called on bounding geometry");
     }
 }
