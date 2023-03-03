@@ -112,19 +112,38 @@ export class Camera {
         let AANumSquares = AA * AA;
         let average = new Uint8Array([0, 0, 0]);
         let color = new Uint8Array([0, 0, 0]);
+        let material = new Uint8Array([0, 0, 0]);
         let blank = new Uint8Array([0, 0, 0]);
         
         let reflection: Vector3 = new Vector3();
         let lightVec: Vector3 = new Vector3();
         let normal: Vector3 = new Vector3();
+        let mirrorReflection: Vector3 = new Vector3();
         //assume only 1 light //TODO remove
-        let light = new Light(
-            new Vector3([0, 0, 5]),
-            new Float32Array([0.25, 0.25, 0.25]),
-            new Float32Array([0.75, 0.75, 0.75]),
-            new Float32Array([0.5, 0.5, 0.5])
-        );
+        // let light = new Light(
+        //     new Vector3([0, 0, 5]),
+        //     new Float32Array([0.25, 0.25, 0.25]),
+        //     new Float32Array([0.75, 0.75, 0.75]),
+        //     new Float32Array([0.5, 0.5, 0.5])
+        // );
+        let lights: Light[] = [
+            new Light(
+                new Vector3([0, 0, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+            new Light(
+                new Vector3([5, 8, 5]),
+                new Float32Array([0, 0, 0]),
+                new Float32Array([0, 0.75, 0]),
+                new Float32Array([0, 0.5, 0])
+            )
+        ]
         let otherColor = new Uint8Array(3);
+        let otherMaterial = new Uint8Array(3);
+        let epsilon = 1e-3;
+        let numReflections = 3;
 
         for (let j=img.height-1; j>=0; j--) {
             for (let i=img.width-1; i>=0; i--) {
@@ -134,72 +153,115 @@ export class Camera {
                 for (let k=0; k<AANumSquares; k++) {
                     let ray = rayGen.next().value as Vector3;
                     let intersect = geomObject.intersect(this.position, ray);
-                    if (intersect) {
-                        //get light vec
-                        color.set(intersect[1].hit(intersect));
-                        lightVec.copyFrom(light.position);
-                        lightVec.subtractInPlace(intersect[0]);
-                        let lightDistance = lightVec.magnitude();
-                        lightVec.normalize();
+                    if (intersect) { //ray hit something
+                        color.set(blank); //color is blank until lit
+                        material.set(intersect[1].hit(intersect)); //get material at intersection
+                        for (let light of lights) { //iterate lights
+                            //get light vector
+                            lightVec.copyFrom(light.position);
+                            lightVec.subtractInPlace(intersect[0]);
+                            let lightDistance = lightVec.magnitude();
+                            lightVec.normalize();
+    
+                            //detect light blocking intersections
+                            reflection.copyFrom(intersect[0]);
+                            reflection.addScaledInPlace(lightVec, epsilon);
+                            let lightIntersect = geomObject.intersect(reflection, lightVec);
+                            if (lightIntersect && lightIntersect[0].distanceFrom(reflection) < lightDistance) {
+                                // material.set(blank);
+                                continue; //light is blocked, continue to next light
+                            }
+    
+                            //compute reflection vector
+                            normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
+                            reflection.copyFrom(normal);
+                            reflection.scaleInPlace(2*normal.dot(lightVec));
+                            reflection.subtractInPlace(lightVec);
+    
+                            //compute phong lighting constants
+                            let nDotL = Math.max(lightVec.dot(normal), 0);
+                            let rDotV = Math.min(reflection.dot(this.lookDirection), 0);
+                            let specular = Math.pow(rDotV, 10);
 
-                        //detect light blocking intersections
-                        let epsilon = 1e-3;
-                        // let epsilon = 0;
-                        reflection.copyFrom(intersect[0]);
-                        reflection.addScaledInPlace(lightVec, epsilon);
-                        let lightIntersect = geomObject.intersect(reflection, lightVec);
-                        if (lightIntersect && lightIntersect[0].distanceFrom(reflection) < lightDistance) {
-                            color.set(blank);
-                            continue;
+                            //update color based on material properties, lighting values, and phong computed phong constants.
+                            color[0] = Math.min(color[0] + material[0] * light.ambient[0] + material[0] * light.diffuse[0] * nDotL + material[0] * light.specular[0] * specular, 255);
+                            color[1] = Math.min(color[1] + material[1] * light.ambient[1] + material[1] * light.diffuse[1] * nDotL + material[1] * light.specular[1] * specular, 255);
+                            color[2] = Math.min(color[2] + material[2] * light.ambient[2] + material[2] * light.diffuse[2] * nDotL + material[2] * light.specular[2] * specular, 255);
                         }
 
-                        //compute reflection vector
-                        normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
-                        reflection.copyFrom(normal);
-                        reflection.scaleInPlace(2*normal.dot(lightVec));
-                        reflection.subtractInPlace(lightVec);
-
-                        //compute phong lighting constants
-                        let nDotL = Math.max(lightVec.dot(normal), 0);
-                        // let nDotL = Math.min(lightVec.dot(normal), 1);
-                        // let nDotL = Math.min(-Math.min(lightVec.dot(normal), 0), 1);
-                        let rDotV = Math.min(reflection.dot(this.lookDirection), 0);
-                        let specular = Math.pow(rDotV, 10);
-
                         //compute mirror intersection
-
-                        // let mirrorIntersect: Intersection;
-                        let mixingConstant = 0.4;
-                        let otherColor = new Uint8Array(3);
+                        let mixingConstant = 0.5;
                         lightVec.copyFrom(ray); //get incoming
                         lightVec.scaleInPlace(-1); //flip incoming
-                        reflection.copyFrom(normal); //start with normal
-                        reflection.scaleInPlace(2*normal.dot(lightVec)); //get reflection of incoming
-                        reflection.subtractInPlace(lightVec); //finish getting reflection
-                        for (let i=3; i>=1; i--) {
-                            //Do current
+                        mirrorReflection.copyFrom(normal); //start with normal
+                        mirrorReflection.scaleInPlace(2*normal.dot(lightVec)); //get reflection of incoming
+                        mirrorReflection.subtractInPlace(lightVec); //finish getting reflection
+                        otherColor.set([0, 0, 0]); //other color is blank until lit
+                        for (let i=numReflections; i>=1; i--) { //iterate bounces
+                            //compute bounce intersect
                             normal.copyFrom(intersect[0]); //get current position
-                            normal.addScaledInPlace(reflection, epsilon); //add a tiny bit so no self intersection
-                            intersect = geomObject.intersect(normal, reflection); //cast out ray
-                            otherColor.set([0, 0, 0]);
+                            normal.addScaledInPlace(mirrorReflection, epsilon); //add a tiny bit so no self intersection
+                            intersect = geomObject.intersect(normal, mirrorReflection); //cast out ray
                             if (intersect) {
-                                otherColor.set(intersect[1].hit(intersect));
-                                //setup next
-                                mixingConstant = Math.pow(mixingConstant, 1.5);
-                                normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
-                                lightVec.copyFrom(reflection);
-                                lightVec.scaleInPlace(-1);
-                                reflection.copyFrom(normal);
-                                reflection.scaleInPlace(2*normal.dot(lightVec));
-                                reflection.subtractInPlace(lightVec);
-                            } else {
-                                i = 0;
+                                otherMaterial.set(intersect[1].hit(intersect)); //get material at intersection
+                                // lightVec.copyFrom(reflection);
+                                // lightVec.scaleInPlace(-1);
+                                // normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
+                                // reflection.copyFrom(normal);
+                                // reflection.scaleInPlace(2*normal.dot(lightVec));
+                                // reflection.subtractInPlace(lightVec);
+                                // otherColor.set(blank);
+                                for (let light of lights) {
+                                    //get light vec
+                                    lightVec.copyFrom(light.position); //get light position
+                                    lightVec.subtractInPlace(intersect[0]); //get vector pointing at ight
+                                    let lightDistance = lightVec.magnitude(); //get distance to light
+                                    lightVec.normalize();
+
+                                    //detect light blocking intersections
+                                    reflection.copyFrom(intersect[0]); //get current position
+                                    reflection.addScaledInPlace(lightVec, epsilon); //add a tiny bit so no self intersection
+                                    let lightIntersect = geomObject.intersect(reflection, lightVec); // get intersect
+                                    if (lightIntersect && lightIntersect[0].distanceFrom(reflection) < lightDistance) {
+                                        //we hit something, go to next light.
+                                        continue;
+                                    }
+            
+                                    //compute light reflection vector
+                                    normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
+                                    reflection.copyFrom(normal);
+                                    reflection.scaleInPlace(2*normal.dot(lightVec));
+                                    reflection.subtractInPlace(lightVec);
+            
+                                    //compute phong lighting constants
+                                    let nDotL = Math.max(lightVec.dot(normal), 0);
+                                    // let nDotL = Math.min(lightVec.dot(normal), 1);
+                                    // let nDotL = Math.min(-Math.min(lightVec.dot(normal), 0), 1);
+                                    let rDotV = Math.min(reflection.dot(this.lookDirection), 0);
+                                    let specular = Math.pow(rDotV, 10);
+                                    otherColor[0] = Math.min(otherColor[0] + otherMaterial[0] * light.ambient[0] + otherMaterial[0] * light.diffuse[0] * nDotL + otherMaterial[0] * light.specular[0] * specular, 255);
+                                    otherColor[1] = Math.min(otherColor[1] + otherMaterial[1] * light.ambient[1] + otherMaterial[1] * light.diffuse[1] * nDotL + otherMaterial[1] * light.specular[1] * specular, 255);
+                                    otherColor[2] = Math.min(otherColor[2] + otherMaterial[2] * light.ambient[2] + otherMaterial[2] * light.diffuse[2] * nDotL + otherMaterial[2] * light.specular[2] * specular, 255);
+                                }
+                            lightVec.copyFrom(mirrorReflection);
+                            lightVec.scaleInPlace(-1);
+                            normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
+                            mirrorReflection.copyFrom(normal);
+                            mirrorReflection.scaleInPlace(2*normal.dot(lightVec));
+                            mirrorReflection.subtractInPlace(lightVec);
+                            } else { //no more bounces
+                                i = 0; //finish up
                             }
 
+                            //now that we know reflection (otherColor), add to color
                             color[0] = (1-mixingConstant) * color[0] + mixingConstant * otherColor[0];
                             color[1] = (1-mixingConstant) * color[1] + mixingConstant * otherColor[1];
                             color[2] = (1-mixingConstant) * color[2] + mixingConstant * otherColor[2];
-                        }
+
+                            //setup next
+                            mixingConstant = Math.pow(mixingConstant, 1.1);
+
+                        } //end mirror reflection
 
                         // lightVec.copyFrom(ray);
                         // lightVec.scaleInPlace(-1);
@@ -220,9 +282,6 @@ export class Camera {
                         // color[1] = (1-mixing) * color[1] + mixing * otherColor[1];
                         // color[2] = (1-mixing) * color[2] + mixing * otherColor[2];
 
-                        color[0] = Math.min(color[0] * light.ambient[0] + color[0] * light.diffuse[0] * nDotL + color[0] * light.specular[0] * specular, 255);
-                        color[1] = Math.min(color[1] * light.ambient[1] + color[1] * light.diffuse[1] * nDotL + color[1] * light.specular[1] * specular, 255);
-                        color[2] = Math.min(color[2] * light.ambient[2] + color[2] * light.diffuse[2] * nDotL + color[2] * light.specular[2] * specular, 255);
                     } else {
                         color.set(blank);
                     }

@@ -81,12 +81,12 @@ function main() {
     let sphere = new SphereGeometry(
         new Vector3([-3, 10, 0]),
         2,
-        new Uint8Array([0xFF, 0xFF, 0xFF])
+        new Uint8Array([255, 255, 255])
     );
     let sphere1 = new SphereGeometry(
         new Vector3([3, 10, 0]),
         2,
-        new Uint8Array([0xFF, 0, 0])
+        new Uint8Array([255, 255, 255])
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
@@ -98,8 +98,8 @@ function main() {
     let globalScene = new CompositeGeometry([
         // teapot1,
         teapot0,
-        bear0,
-        // sphere,
+        // bear0,
+        sphere,
         // sphere1,
         groundPlane,
         // disc,
