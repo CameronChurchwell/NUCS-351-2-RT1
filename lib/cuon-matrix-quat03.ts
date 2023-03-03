@@ -652,6 +652,10 @@ export class Vector3 {
         // console.log(this.pointer);
     }
 
+    free() {
+        free_vector3(this.pointer);
+    }
+
     static planeIntersect(raySourcePosition: Vector3, rayDirection: Vector3, normalVec: Vector3, offsetVec: Vector3, destinationVec: Vector3) {
         return planeintersect_vector3(
             raySourcePosition.pointer,

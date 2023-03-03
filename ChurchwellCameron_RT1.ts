@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { bearGraphicsObject, groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -11,7 +11,7 @@ import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 import { getWebGLContext } from "./lib/cuon-utils";
 
-let resolution = 256;
+let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
 
 var rasterizedShader = new ShaderProgram(
@@ -47,14 +47,26 @@ function main() {
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
         new Vector3([0, 0, 1]),
+        new Uint8Array([255, 255, 255])
+    );
+    let disc = new DiscGeometry(
+        new Vector3([3, 8, 1]),
+        new Vector3([1, 1, 0]),
+        2,
         new Uint8Array([255, 0, 0])
     );
-    // let disc = new DiscGeometry(
-    //     new Vector3([5, 5, 1]),
-    //     new Vector3([1, 0, 0]),
-    //     2,
-    //     new Uint8Array([0xFF, 0xFF, 0xFF])
-    // );
+    let disc1 = new DiscGeometry(
+        new Vector3([-3, 8, 1]),
+        new Vector3([1, 0, 0]),
+        2,
+        new Uint8Array([0, 255, 0])
+    );
+    let disc2 = new DiscGeometry(
+        new Vector3([-3, 4, 1]),
+        new Vector3([-1, -1, 0]),
+        2,
+        new Uint8Array([0, 0, 255])
+    );
     // let wallPlane = new GridPlaneGeometry(
     //     new Vector3([100, 0, 0]),
     //     new Vector3([1, 0, 0]),
@@ -67,21 +79,32 @@ function main() {
     //     new Uint8Array([0xFF, 0xFF, 0xFF])
     // );
     let sphere = new SphereGeometry(
-        new Vector3([0, 10, 1]),
+        new Vector3([-3, 10, 0]),
         2,
         new Uint8Array([0xFF, 0xFF, 0xFF])
+    );
+    let sphere1 = new SphereGeometry(
+        new Vector3([3, 10, 0]),
+        2,
+        new Uint8Array([0xFF, 0, 0])
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000);
     // let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), Infinity);
     console.log(teapot0);
-    // let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([8, 0, 0]), 100);
+    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000);
+    let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000);
     let globalScene = new CompositeGeometry([
         // teapot1,
-        // sphere,
-        groundPlane,
         teapot0,
+        bear0,
+        // sphere,
+        // sphere1,
+        groundPlane,
+        // disc,
+        // disc1,
+        // disc2,
     ]);
 
     // Retrieve <canvas> element
@@ -187,7 +210,6 @@ function animate(timeStep) {
 function draw(gl: WebGL2RenderingContextStrict) {
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // gl.clear(gl.DEPTH_BUFFER_BIT);
 
     //Draw left (rasterized) view
     leftViewport.focusWithContext(gl);

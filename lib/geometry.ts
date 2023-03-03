@@ -128,8 +128,11 @@ export class TriangleGoemetry extends PlaneGeometry {
     regularizer: number;
     trianglePointer: number;
     secondReusableVector: Vector3;
+    normal0: Vector3;
+    normal1: Vector3;
+    normal2: Vector3;
 
-    constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, color: Uint8Array) {
+    constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, normal0: Vector3, normal1: Vector3, normal2: Vector3, color: Uint8Array) {
         // const side0 = vertex1.subtract(vertex0);
         let side0 = new Vector3(vertex1);
         side0.subtractInPlace(vertex0);
@@ -155,7 +158,15 @@ export class TriangleGoemetry extends PlaneGeometry {
         this.angle *= regularizer;
 
         this.secondReusableVector = new Vector3();
+
+        this.normal0 = normal0;
+        this.normal1 = normal1;
+        this.normal2 = normal2;
         
+        // if (normalVector.dot(normal0) < 0) {
+        //     throw new Error("bruh");
+        // }
+
         // let magSq0 = side0.dot(side0);
         // let magSq1 = side1.dot(side1);
         // let angle = side0.dot(side1);
@@ -225,6 +236,39 @@ export class TriangleGoemetry extends PlaneGeometry {
 
     hit(intersection: [Vector3, Geometry]): Uint8Array {
         return new Uint8Array([255, 255, 255]);
+    }
+
+    surfaceNormal(position: Vector3): Vector3 {
+        let reusableVector = this.secondReusableVector;
+        reusableVector.copyFrom(position);
+        reusableVector.subtractInPlace(this.offsetVector);
+        // let difference = this.reusableVector;
+        // const difference = p.subtract(this.offsetVector);
+        const angle0 = reusableVector.dot(this.side0);
+        const angle1 = reusableVector.dot(this.side1);
+
+        const angle = this.angle;
+        const u = (this.magSq0*angle1 - angle*angle0);
+        const v = (this.magSq1*angle0 - angle*angle1);
+        const w = 1 - (u + v);
+
+        reusableVector.zeroOut();
+        reusableVector.addScaledInPlace(this.normal0, w);
+        reusableVector.addScaledInPlace(this.normal1, v);
+        reusableVector.addScaledInPlace(this.normal2, u);
+
+        // reusableVector.zeroOut();
+        // console.log(this.normal0, this.normal1, this.normal2, this.normalVector);
+        // throw new Error("bruh");
+        
+        // reusableVector.addScaledInPlace(this.normal1, u);
+        // reusableVector.addScaledInPlace(this.normal2, v);
+        // reusableVector.addScaledInPlace(this.normalVector, -1);
+        
+        // reusableVector.copyFrom(this.normalVector);
+        // reusableVector.normalize();
+
+        return reusableVector;
     }
 }
 
@@ -327,8 +371,11 @@ export class MeshGeometry extends CompositeGeometry {
             for (let i=0; i< numVertices; i+=3) {
                 const start = floatsPerVertex*i;
                 const vertex0 = new Vector3(vertexArray.slice(start, start+3));
+                const normal0 = new Vector3(vertexArray.slice(start+4, start+7));
                 const vertex1 = new Vector3(vertexArray.slice(start+floatsPerVertex, start+floatsPerVertex+3));
+                const normal1 = new Vector3(vertexArray.slice(start+floatsPerVertex+4, start+floatsPerVertex+7));
                 const vertex2 = new Vector3(vertexArray.slice(start+floatsPerVertex*2, start+2*floatsPerVertex+3));
+                const normal2 = new Vector3(vertexArray.slice(start+floatsPerVertex*2+4, start+floatsPerVertex*2+7));
 
                 vertex0.addInPlace(offsetVector);
                 vertex1.addInPlace(offsetVector);
@@ -338,10 +385,13 @@ export class MeshGeometry extends CompositeGeometry {
                     vertex0,
                     vertex1,
                     vertex2,
+                    normal0,
+                    normal1,
+                    normal2,
                     new Uint8Array([0xFF, 0xFF, 0xFF])
                 ));
             }
-            
+
             // let cluster = new TriangleCluster(triangles);
             // super([cluster]);
             super(triangles);
@@ -377,9 +427,11 @@ export class MeshGeometry extends CompositeGeometry {
 }
 
 export class SphereGeometry extends DiscGeometry {
+    secondReusableVector: Vector3;
 
     constructor(center: Vector3, radius: number, color: Uint8Array) {
         super(center, new Vector3([0, 0, 0]), radius, color);
+        this.secondReusableVector = new Vector3();
     }
 
     intersect(raySourcePosition: Vector3, rayDirection: Vector3): Intersection {
@@ -390,17 +442,19 @@ export class SphereGeometry extends DiscGeometry {
             let distanceFromCenter = position.distanceFrom(this.offsetVector);
             //negative here is because normal vector points away from camera
             let height = Math.sqrt(Math.pow(this.radius, 2) - Math.pow(distanceFromCenter, 2));
-            position.addScaledInPlace(this.normalVector, -height)
+            position.addScaledInPlace(this.normalVector, -height);
             return [position, this];
         }
         return null;
     }
 
     surfaceNormal(position: Vector3): Vector3 {
-        this.reusableVector.copyFrom(position);
-        this.reusableVector.subtractInPlace(this.offsetVector);
-        this.reusableVector.normalize();
-        return this.reusableVector;
+        let reusableVector = this.secondReusableVector;
+        reusableVector.copyFrom(position);
+        reusableVector.subtractInPlace(this.offsetVector);
+        reusableVector.normalize();
+        // console.log(position.elements, reusableVector.elements);
+        return reusableVector;
     }
 }
 

@@ -13,15 +13,12 @@ export let groundGraphicsObject = new GraphicsObject(gndVerts, 0x0001, floatsPer
 let textureVerts = require('./vertex-objects/texture-vertices.json');
 export let textureGraphicsObject = new GraphicsObject(textureVerts, WebGL2RenderingContext.TRIANGLE_STRIP, 4);
 
-// let boxVerts = makeBox();
-// export let boxGraphicsObject = new GraphicsObject(boxVerts, 0x0002, floatsPerVertex);
-
-// let cubeVerts = makeMiniCube();
-// export let cubeGraphicsObject = new GraphicsObject(cubeVerts, WebGL2RenderingContext.TRIANGLES, 7);
-
 // let teapotVerts = require('./vertex-objects/teapot-vertices.json');
 let teapotVerts = require('./vertex-objects/teapot-normal-vertices.json');
 export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7);
 
-// let particleVerts = new Float32Array([0, 0, 0, 0, 1, 1, 1]);
-// export let particleGraphicsObject = new GraphicsObject(particleVerts, 0x0000, floatsPerVertex);
+let bearVerts = require('./vertex-objects/bear-normal-vertices.json');
+export let bearGraphicsObject = new GraphicsObject(bearVerts, WebGL2RenderingContext.TRIANGLES, 7);
+
+let sphereVerts = require('./vertex-objects/sphere-normal-vertices.json');
+export let sphereGraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7);
