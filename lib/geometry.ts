@@ -1,5 +1,6 @@
 import { Vector3 } from "./cuon-matrix-quat03";
 import { GraphicsObject } from "./graphics-object";
+import { Material } from "./material";
 
 export type Intersection = [Vector3, Geometry] | null;
 
@@ -20,7 +21,7 @@ export abstract class Geometry {
         throw new Error("Not implemented!");
     }
 
-    hit(intersection: Intersection): Uint8Array {
+    hit(intersection: Intersection): Material {
         throw new Error("Not implemented!");
     }
 }
@@ -28,13 +29,13 @@ export abstract class Geometry {
 export class PlaneGeometry extends Geometry {
     offsetVector: Vector3;
     normalVector: Vector3;
-    color: Uint8Array;
+    material: Material;
 
-    constructor(offsetVector: Vector3, normalVector: Vector3, color: Uint8Array) {
+    constructor(offsetVector: Vector3, normalVector: Vector3, material: Material) {
         super();
         this.offsetVector = offsetVector;
         this.normalVector = normalVector.normalize();
-        this.color = color;
+        this.material = material;
     }
 
     surfaceNormal(position: Vector3): Vector3 {
@@ -70,8 +71,8 @@ export class PlaneGeometry extends Geometry {
         return null;
     }
 
-    hit(intersection: Intersection): Uint8Array {
-        return this.color;
+    hit(intersection: Intersection): Material {
+        return this.material;
     }
 }
 
@@ -97,8 +98,8 @@ export class GridPlaneGeometry extends PlaneGeometry {
 export class DiscGeometry extends PlaneGeometry {
     radius: number;
 
-    constructor(center: Vector3, normalVector: Vector3, radius: number, color: Uint8Array) {
-        super(center, normalVector, color);
+    constructor(center: Vector3, normalVector: Vector3, radius: number, material: Material) {
+        super(center, normalVector, material);
         this.radius = radius;
     }
 
@@ -114,8 +115,8 @@ export class DiscGeometry extends PlaneGeometry {
         return null;
     }
 
-    hit(intersection: [Vector3, Geometry]): Uint8Array {
-        return this.color;
+    hit(intersection: [Vector3, Geometry]): Material {
+        return this.material;
     }
 }
 
@@ -132,7 +133,7 @@ export class TriangleGoemetry extends PlaneGeometry {
     normal1: Vector3;
     normal2: Vector3;
 
-    constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, normal0: Vector3, normal1: Vector3, normal2: Vector3, color: Uint8Array) {
+    constructor(vertex0: Vector3, vertex1: Vector3, vertex2: Vector3, normal0: Vector3, normal1: Vector3, normal2: Vector3, material: Material) {
         // const side0 = vertex1.subtract(vertex0);
         let side0 = new Vector3(vertex1);
         side0.subtractInPlace(vertex0);
@@ -144,7 +145,7 @@ export class TriangleGoemetry extends PlaneGeometry {
         normalVector.scaleInPlace(-1);
         // super(vertex0, side0.cross(side1), color);
 
-        super(vertex0, normalVector, color);
+        super(vertex0, normalVector, material);
 
         this.side0 = side0;
         this.side1 = side1;
@@ -234,8 +235,8 @@ export class TriangleGoemetry extends PlaneGeometry {
         return null;
     }
 
-    hit(intersection: [Vector3, Geometry]): Uint8Array {
-        return new Uint8Array([255, 255, 255]);
+    hit(intersection: [Vector3, Geometry]): Material {
+        return this.material
     }
 
     surfaceNormal(position: Vector3): Vector3 {
@@ -310,7 +311,7 @@ export class CompositeGeometry extends Geometry {
         throw new Error("Not implemented for CompositeGeometry!");
     }
 
-    hit(intersection: Intersection): Uint8Array {
+    hit(intersection: Intersection): Material {
         return intersection[1].hit(intersection);
     }
 }
@@ -347,7 +348,7 @@ export class CompositeGeometry extends Geometry {
 export class MeshGeometry extends CompositeGeometry {
     boundingSphere: BoundingSphereGeometry;
 
-    constructor(vertexArray: Float32Array, floatsPerVertex: number, offsetVector: Vector3, chunkSize: number = Infinity) {
+    constructor(vertexArray: Float32Array, floatsPerVertex: number, offsetVector: Vector3, chunkSize: number = Infinity, material: Material) {
         let numVertices = vertexArray.length / floatsPerVertex;
         if (chunkSize == Infinity) {
             let triangles: TriangleGoemetry[] = [];
@@ -388,7 +389,7 @@ export class MeshGeometry extends CompositeGeometry {
                     normal0,
                     normal1,
                     normal2,
-                    new Uint8Array([0xFF, 0xFF, 0xFF])
+                    material
                 ));
             }
 
@@ -404,7 +405,7 @@ export class MeshGeometry extends CompositeGeometry {
                 let start = i*floatsPerVertex*3;
                 let count = floatsPerVertex*chunkSize*3;
                 let vertices = vertexArray.slice(start, start+count);
-                subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/5 > 5 ? chunkSize/5 : Infinity));
+                subMeshes.push(new MeshGeometry(vertices, floatsPerVertex, offsetVector, chunkSize/5 > 5 ? chunkSize/5 : Infinity, material));
                 boundingSpheres.push(subMeshes[subMeshes.length-1].boundingSphere);
             }
             super(subMeshes);
@@ -429,8 +430,8 @@ export class MeshGeometry extends CompositeGeometry {
 export class SphereGeometry extends DiscGeometry {
     secondReusableVector: Vector3;
 
-    constructor(center: Vector3, radius: number, color: Uint8Array) {
-        super(center, new Vector3([0, 0, 0]), radius, color);
+    constructor(center: Vector3, radius: number, material: Material) {
+        super(center, new Vector3([0, 0, 0]), radius, material);
         this.secondReusableVector = new Vector3();
     }
 
@@ -484,7 +485,7 @@ export class BoundingSphereGeometry extends DiscGeometry {
         return new BoundingSphereGeometry(center, maxDistance);
     }
 
-    hit(intersection: [Vector3, Geometry]): Uint8Array {
+    hit(intersection: [Vector3, Geometry]): Material {
         throw new Error("No hits should be called on bounding geometry");
     }
 }

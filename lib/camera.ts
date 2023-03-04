@@ -4,6 +4,7 @@ import { CallbackMap } from "./user-input";
 import { ImageBuffer } from './buffer';
 import { Perspective } from "./perspective";
 import { Light } from "./light";
+import { Material } from "./material";
 
 let trueUpVec = new Vector3([0, 0, 1]);
 
@@ -17,6 +18,7 @@ export class Camera {
     rotationalVelocity: Matrix4;
     callbackMap: CallbackMap;
     reusableRay: Vector3;
+    numBounces: number;
 
     constructor(position: Vector3, upDirection: Vector3, lookDirection: Vector3, perspective: Perspective) {
         this.position = position;
@@ -107,25 +109,18 @@ export class Camera {
         }
     }
 
-    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0) {
+    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0, numReflections: number = 1) {
         let rayGen = this.makeRayGenerator(img.width, img.height, AA, jitter);
         let AANumSquares = AA * AA;
         let average = new Uint8Array([0, 0, 0]);
         let color = new Uint8Array([0, 0, 0]);
-        let material = new Uint8Array([0, 0, 0]);
+        let material: Material
         let blank = new Uint8Array([0, 0, 0]);
         
         let reflection: Vector3 = new Vector3();
         let lightVec: Vector3 = new Vector3();
         let normal: Vector3 = new Vector3();
         let mirrorReflection: Vector3 = new Vector3();
-        //assume only 1 light //TODO remove
-        // let light = new Light(
-        //     new Vector3([0, 0, 5]),
-        //     new Float32Array([0.25, 0.25, 0.25]),
-        //     new Float32Array([0.75, 0.75, 0.75]),
-        //     new Float32Array([0.5, 0.5, 0.5])
-        // );
         let lights: Light[] = [
             new Light(
                 new Vector3([0, 0, 5]),
@@ -141,9 +136,9 @@ export class Camera {
             )
         ]
         let otherColor = new Uint8Array(3);
-        let otherMaterial = new Uint8Array(3);
+        let otherMaterial: Material = new Material();
         let epsilon = 1e-3;
-        let numReflections = 3;
+        let mixingConstant = 0;
 
         for (let j=img.height-1; j>=0; j--) {
             for (let i=img.width-1; i>=0; i--) {
@@ -155,7 +150,7 @@ export class Camera {
                     let intersect = geomObject.intersect(this.position, ray);
                     if (intersect) { //ray hit something
                         color.set(blank); //color is blank until lit
-                        material.set(intersect[1].hit(intersect)); //get material at intersection
+                        material = intersect[1].hit(intersect);
                         for (let light of lights) { //iterate lights
                             //get light vector
                             lightVec.copyFrom(light.position);
@@ -168,7 +163,6 @@ export class Camera {
                             reflection.addScaledInPlace(lightVec, epsilon);
                             let lightIntersect = geomObject.intersect(reflection, lightVec);
                             if (lightIntersect && lightIntersect[0].distanceFrom(reflection) < lightDistance) {
-                                // material.set(blank);
                                 continue; //light is blocked, continue to next light
                             }
     
@@ -181,16 +175,15 @@ export class Camera {
                             //compute phong lighting constants
                             let nDotL = Math.max(lightVec.dot(normal), 0);
                             let rDotV = Math.min(reflection.dot(this.lookDirection), 0);
-                            let specular = Math.pow(rDotV, 10);
+                            let specular = Math.pow(rDotV, material.shiny);
 
                             //update color based on material properties, lighting values, and phong computed phong constants.
-                            color[0] = Math.min(color[0] + material[0] * light.ambient[0] + material[0] * light.diffuse[0] * nDotL + material[0] * light.specular[0] * specular, 255);
-                            color[1] = Math.min(color[1] + material[1] * light.ambient[1] + material[1] * light.diffuse[1] * nDotL + material[1] * light.specular[1] * specular, 255);
-                            color[2] = Math.min(color[2] + material[2] * light.ambient[2] + material[2] * light.diffuse[2] * nDotL + material[2] * light.specular[2] * specular, 255);
+                            material.addPhong(light, nDotL, specular, color);
                         }
 
                         //compute mirror intersection
-                        let mixingConstant = 0.5;
+                        mixingConstant = material.mirror;
+                        
                         lightVec.copyFrom(ray); //get incoming
                         lightVec.scaleInPlace(-1); //flip incoming
                         mirrorReflection.copyFrom(normal); //start with normal
@@ -203,14 +196,7 @@ export class Camera {
                             normal.addScaledInPlace(mirrorReflection, epsilon); //add a tiny bit so no self intersection
                             intersect = geomObject.intersect(normal, mirrorReflection); //cast out ray
                             if (intersect) {
-                                otherMaterial.set(intersect[1].hit(intersect)); //get material at intersection
-                                // lightVec.copyFrom(reflection);
-                                // lightVec.scaleInPlace(-1);
-                                // normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
-                                // reflection.copyFrom(normal);
-                                // reflection.scaleInPlace(2*normal.dot(lightVec));
-                                // reflection.subtractInPlace(lightVec);
-                                // otherColor.set(blank);
+                                otherMaterial = intersect[1].hit(intersect);
                                 for (let light of lights) {
                                     //get light vec
                                     lightVec.copyFrom(light.position); //get light position
@@ -226,22 +212,18 @@ export class Camera {
                                         //we hit something, go to next light.
                                         continue;
                                     }
-            
+
                                     //compute light reflection vector
                                     normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
                                     reflection.copyFrom(normal);
                                     reflection.scaleInPlace(2*normal.dot(lightVec));
                                     reflection.subtractInPlace(lightVec);
-            
+
                                     //compute phong lighting constants
                                     let nDotL = Math.max(lightVec.dot(normal), 0);
-                                    // let nDotL = Math.min(lightVec.dot(normal), 1);
-                                    // let nDotL = Math.min(-Math.min(lightVec.dot(normal), 0), 1);
                                     let rDotV = Math.min(reflection.dot(this.lookDirection), 0);
-                                    let specular = Math.pow(rDotV, 10);
-                                    otherColor[0] = Math.min(otherColor[0] + otherMaterial[0] * light.ambient[0] + otherMaterial[0] * light.diffuse[0] * nDotL + otherMaterial[0] * light.specular[0] * specular, 255);
-                                    otherColor[1] = Math.min(otherColor[1] + otherMaterial[1] * light.ambient[1] + otherMaterial[1] * light.diffuse[1] * nDotL + otherMaterial[1] * light.specular[1] * specular, 255);
-                                    otherColor[2] = Math.min(otherColor[2] + otherMaterial[2] * light.ambient[2] + otherMaterial[2] * light.diffuse[2] * nDotL + otherMaterial[2] * light.specular[2] * specular, 255);
+                                    let specular = Math.pow(rDotV, otherMaterial.shiny);
+                                    otherMaterial.addPhong(light, nDotL, specular, otherColor);
                                 }
                             lightVec.copyFrom(mirrorReflection);
                             lightVec.scaleInPlace(-1);
@@ -259,29 +241,8 @@ export class Camera {
                             color[2] = (1-mixingConstant) * color[2] + mixingConstant * otherColor[2];
 
                             //setup next
-                            mixingConstant = Math.pow(mixingConstant, 1.1);
-
+                            mixingConstant = mixingConstant * otherMaterial.mirror;
                         } //end mirror reflection
-
-                        // lightVec.copyFrom(ray);
-                        // lightVec.scaleInPlace(-1);
-                        // normal.copyFrom(intersect[1].surfaceNormal(intersect[0]));
-                        // reflection.copyFrom(normal);
-                        // reflection.scaleInPlace(2*normal.dot(lightVec));
-                        // // reflection.addInPlace(lightVec)
-                        // reflection.subtractInPlace(lightVec);
-                        // normal.copyFrom(intersect[0]);
-                        // normal.addScaledInPlace(reflection, epsilon);
-                        // let mirrorIntersect = geomObject.intersect(normal, reflection);
-                        // let mixing = 0.25;
-                        // otherColor.set(blank);
-                        // if (mirrorIntersect) {
-                        //     otherColor.set(mirrorIntersect[1].hit(mirrorIntersect));
-                        // }
-                        // color[0] = (1-mixing) * color[0] + mixing * otherColor[0];
-                        // color[1] = (1-mixing) * color[1] + mixing * otherColor[1];
-                        // color[2] = (1-mixing) * color[2] + mixing * otherColor[2];
-
                     } else {
                         color.set(blank);
                     }

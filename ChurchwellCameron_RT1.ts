@@ -10,6 +10,7 @@ import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
 import { getWebGLContext } from "./lib/cuon-utils";
+import { Material } from "./lib/material";
 
 let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
@@ -42,30 +43,40 @@ var u_Sampler_loc;
 
 var gs: GraphicsSystem;
 
+
 function main() {
+    //materials
+    let basicMaterial = new Material();
+    let basicMatte = new Material(
+        new Uint8Array([255, 255, 255]),
+        new Uint8Array([255, 255, 255]),
+        new Uint8Array([0, 0, 0]),
+        1,
+        0
+    )
 
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
         new Vector3([0, 0, 1]),
-        new Uint8Array([255, 255, 255])
+        basicMatte
     );
     let disc = new DiscGeometry(
         new Vector3([3, 8, 1]),
         new Vector3([1, 1, 0]),
         2,
-        new Uint8Array([255, 0, 0])
+        basicMaterial
     );
     let disc1 = new DiscGeometry(
         new Vector3([-3, 8, 1]),
         new Vector3([1, 0, 0]),
         2,
-        new Uint8Array([0, 255, 0])
+        basicMaterial
     );
     let disc2 = new DiscGeometry(
         new Vector3([-3, 4, 1]),
         new Vector3([-1, -1, 0]),
         2,
-        new Uint8Array([0, 0, 255])
+        basicMaterial
     );
     // let wallPlane = new GridPlaneGeometry(
     //     new Vector3([100, 0, 0]),
@@ -81,20 +92,20 @@ function main() {
     let sphere = new SphereGeometry(
         new Vector3([-3, 10, 0]),
         2,
-        new Uint8Array([255, 255, 255])
+        basicMatte
     );
     let sphere1 = new SphereGeometry(
         new Vector3([3, 10, 0]),
         2,
-        new Uint8Array([255, 255, 255])
+        basicMaterial
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
-    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000);
+    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
     // let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), Infinity);
     console.log(teapot0);
-    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000);
-    let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000);
+    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000, basicMaterial);
+    let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000, basicMaterial);
     let globalScene = new CompositeGeometry([
         // teapot1,
         teapot0,

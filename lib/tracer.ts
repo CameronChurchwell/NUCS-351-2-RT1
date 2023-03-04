@@ -14,6 +14,7 @@ export class Tracer {
     AA: number;
     jitter: number;
     lights: Light[];
+    numReflections: number
 
     constructor(camera: Camera, img: ImageBuffer, geometry: Geometry, gl: WebGL2RenderingContextStrict, AA: number = 1, jitter: number = 0, lights?: Light[]) {
         this.camera = camera;
@@ -26,12 +27,13 @@ export class Tracer {
             ['keyDown', this.keyDown.bind(this)]
         ]);
         this.lights = lights ?? [];
+        this.numReflections = 1;
     }
 
     trace() {
         console.log('begin tracing');
         const start = Date.now();
-        this.camera.traceGeometry(this.geometry, this.img, this.AA, this.jitter);
+        this.camera.traceGeometry(this.geometry, this.img, this.AA, this.jitter, this.numReflections);
         this.gl.texSubImage2D(
             this.gl.TEXTURE_2D,
             0,
@@ -69,6 +71,17 @@ export class Tracer {
                     this.jitter = 0;
                 }
                 document.getElementById("jitter").innerHTML = this.jitter.toString();
+            case "KeyM":
+                this.numReflections++;
+                document.getElementById("reflections").innerHTML = this.numReflections.toString();
+                break;
+            case "KeyN":
+                this.numReflections--;
+                if (this.numReflections < 0) {
+                    this.numReflections = 0;
+                }
+                document.getElementById("reflections").innerHTML = this.numReflections.toString();
+                break;
             default:
                 break;
         }
