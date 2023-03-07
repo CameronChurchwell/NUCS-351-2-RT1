@@ -1,3 +1,4 @@
+import { Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsObject } from "./lib/graphics-object";
 // import { makeBox } from "./vertex-objects/box-vertices";
 import { makeGroundGrid } from "./vertex-objects/ground-vertices";
@@ -15,10 +16,11 @@ export let textureGraphicsObject = new GraphicsObject(textureVerts, WebGL2Render
 
 // let teapotVerts = require('./vertex-objects/teapot-vertices.json');
 let teapotVerts = require('./vertex-objects/teapot-normal-vertices.json');
-export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7);
+export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 8, 0]));
 
 let bearVerts = require('./vertex-objects/bear-normal-vertices.json');
 export let bearGraphicsObject = new GraphicsObject(bearVerts, WebGL2RenderingContext.TRIANGLES, 7);
 
 let sphereVerts = require('./vertex-objects/sphere-normal-vertices.json');
-export let sphereGraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7);
+export let sphereGraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([-3, 10, 0]));
+export let sphere1GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([3, 10, 0]));

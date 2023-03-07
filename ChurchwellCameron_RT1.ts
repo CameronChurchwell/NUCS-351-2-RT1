@@ -1,15 +1,14 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { bearGraphicsObject, groundGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { bearGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphereGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, TriangleGoemetry, SphereGeometry, PlaneGeometry } from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, SphereGeometry} from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { getWebGLContext } from "./lib/cuon-utils";
 import { Material } from "./lib/material";
 
 let resolution = 512;
@@ -91,19 +90,18 @@ function main() {
     // );
     let sphere = new SphereGeometry(
         new Vector3([-3, 10, 0]),
-        2,
+        1,
         basicMatte
     );
     let sphere1 = new SphereGeometry(
         new Vector3([3, 10, 0]),
-        2,
+        1,
         basicMaterial
     );
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
     // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
     // let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), Infinity);
-    console.log(teapot0);
     let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000, basicMaterial);
     let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000, basicMaterial);
     let globalScene = new CompositeGeometry([
@@ -111,7 +109,7 @@ function main() {
         teapot0,
         // bear0,
         sphere,
-        // sphere1,
+        sphere1,
         groundPlane,
         // disc,
         // disc1,
@@ -164,6 +162,9 @@ function main() {
     gs = new GraphicsSystem(gl, [
         groundGraphicsObject,
         teapotGraphicsObject,
+        sphereGraphicsObject,
+        sphere1GraphicsObject,
+        bearGraphicsObject,
         textureGraphicsObject,
     ]);
     gs.initVertexBuffer();
@@ -229,15 +230,11 @@ function draw(gl: WebGL2RenderingContextStrict) {
     camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
     groundGraphicsObject.draw();
-    mvpMat.translate(0, 8, 0);
-    gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    teapotGraphicsObject.draw();
-    // mvpMat.translate(8, -8, 0);
-    // gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    // teapotGraphicsObject.draw();
+    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat);
+    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat);
+    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat);;
 
     //Draw right (raytraced) view
-    // tracer.trace(); //real time test
     rightViewport.focusWithContext(gl);
     raytracedShader.useWithContext(gl);
     updateLocationsRaytraced(gl);
@@ -292,10 +289,6 @@ function updateLocationsRaytraced(gl: WebGL2RenderingContextStrict) {
         2*4
     );
     gl.enableVertexAttribArray(a_TexCoordID);
-}
-
-function resize() {
-
 }
 
 main();

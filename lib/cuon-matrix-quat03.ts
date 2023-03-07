@@ -47,6 +47,10 @@ export class Matrix4 {
         return this;
     };
 
+    copyFrom(src: Matrix4) {
+        this.elements.set(src.elements);
+    }
+
     set(src) {
         var i, s, d;
         s = src.elements;
