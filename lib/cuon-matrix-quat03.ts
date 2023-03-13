@@ -47,6 +47,14 @@ export class Matrix4 {
         return this;
     };
 
+    toString() {
+        var e = this.elements;
+        return `${e[0].toString().padStart(4, ' ')}, ${e[4].toString().padStart(4, ' ')}, ${e[8].toString().padStart(4, ' ')}, ${e[12].toString().padStart(4, ' ')}
+${e[1].toString().padStart(4, ' ')}, ${e[5].toString().padStart(4, ' ')}, ${e[9].toString().padStart(4, ' ')}, ${e[13].toString().padStart(4, ' ')}
+${e[2].toString().padStart(4, ' ')}, ${e[6].toString().padStart(4, ' ')}, ${e[10].toString().padStart(4, ' ')}, ${e[14].toString().padStart(4, ' ')}
+${e[3].toString().padStart(4, ' ')}, ${e[7].toString().padStart(4, ' ')}, ${e[11].toString().padStart(4, ' ')}, ${e[15].toString().padStart(4, ' ')}`
+    }
+
     copyFrom(src: Matrix4) {
         this.elements.set(src.elements);
     }

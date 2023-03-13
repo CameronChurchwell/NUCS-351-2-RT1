@@ -39,6 +39,8 @@ var mvpMat = new Matrix4();
 var u_mvpMat_loc;
 var u_Texture_loc;
 var u_Sampler_loc;
+var u_normalMat_loc;
+var u_modelMat_loc;
 
 var gs: GraphicsSystem;
 
@@ -107,7 +109,7 @@ function main() {
     let globalScene = new CompositeGeometry([
         // teapot1,
         teapot0,
-        // bear0,
+        bear0,
         sphere,
         sphere1,
         groundPlane,
@@ -227,12 +229,12 @@ function draw(gl: WebGL2RenderingContextStrict) {
     leftViewport.focusWithContext(gl);
     rasterizedShader.useWithContext(gl);
     updateLocationsRasterized(gl); //update uniform locations
-    camera.applyTo(mvpMat);
+    // camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    groundGraphicsObject.draw();
-    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat);
-    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat);
-    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat);;
+    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
+    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
+    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
+    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
 
     //Draw right (raytraced) view
     rightViewport.focusWithContext(gl);
@@ -244,9 +246,11 @@ function draw(gl: WebGL2RenderingContextStrict) {
 
 function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
     u_mvpMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_mvpMat');
+    u_modelMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_modelMatrix');
+    u_normalMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_normalMat');
     // Get the ID# for the a_Position variable in the graphics hardware
     var a_PositionID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Position');
-    var a_ColorID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Color');
+    var a_NormalID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Normal');
     gl.vertexAttribPointer(a_PositionID, 
                             4,  // # of values in this attrib (1,2,3,4) 
                             gl.FLOAT, // data type (usually gl.FLOAT)
@@ -257,14 +261,14 @@ function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
     // Enable this assignment of the bound buffer to the a_Position variable:
     gl.enableVertexAttribArray(a_PositionID);
     gl.vertexAttribPointer(
-        a_ColorID,
+        a_NormalID,
         3,
         gl.FLOAT,
         false,
         7*4,
         4*4
     );
-    gl.enableVertexAttribArray(a_ColorID);
+    gl.enableVertexAttribArray(a_NormalID);
 }
 
 function updateLocationsRaytraced(gl: WebGL2RenderingContextStrict) {

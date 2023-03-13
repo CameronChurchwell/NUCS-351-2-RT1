@@ -1,3 +1,4 @@
+import { Camera } from "./camera";
 import { Matrix4, Vector3 } from "./cuon-matrix-quat03";
 import { GraphicsSystem } from "./graphics-system";
 
@@ -24,11 +25,29 @@ export class GraphicsObject {
         this.graphicsSystem = null;
     }
 
-    draw(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4) {
+    draw(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4, camera?: Camera, modelMatrixLoc?: WebGLUniformLocation, normalMatrixLoc?: WebGLUniformLocation) {
         
-        if (transformMatrixLoc) {
+        if (modelMatrixLoc) {
             let reusableMatrix = this.reusableMatrix;
             reusableMatrix.copyFrom(sceneMatrix);
+            reusableMatrix.concat(this.transformMatrix);
+            console.log(reusableMatrix.toString());
+            this.graphicsSystem?.gl_object.uniformMatrix4fv(modelMatrixLoc, false, reusableMatrix.elements);
+        }
+        if (normalMatrixLoc) {
+            let reusableMatrix = this.reusableMatrix;
+            // reusableMatrix.setTranslate(camera.position.elements[0], camera.position.elements[1], camera.position.elements[2]);
+            reusableMatrix.copyFrom(sceneMatrix);
+            reusableMatrix.concat(this.transformMatrix);
+            reusableMatrix.invert();
+            // reusableMatrix.transpose(); //TODO use transpose at uniform step?
+            // console.log(reusableMatrix.toString());
+            this.graphicsSystem?.gl_object.uniformMatrix4fv(normalMatrixLoc, false, reusableMatrix.elements);
+        }
+        if (transformMatrixLoc) {
+            let reusableMatrix = this.reusableMatrix;
+            camera.applyTo(reusableMatrix);
+            reusableMatrix.concat(sceneMatrix);
             reusableMatrix.concat(this.transformMatrix);
             this.graphicsSystem?.gl_object.uniformMatrix4fv(transformMatrixLoc, false, reusableMatrix.elements);
         }
