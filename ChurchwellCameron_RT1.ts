@@ -41,6 +41,7 @@ var u_Texture_loc;
 var u_Sampler_loc;
 var u_normalMat_loc;
 var u_modelMat_loc;
+var u_cameraPos_loc;
 
 var gs: GraphicsSystem;
 
@@ -231,10 +232,10 @@ function draw(gl: WebGL2RenderingContextStrict) {
     updateLocationsRasterized(gl); //update uniform locations
     // camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
-    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
-    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
-    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc);
+    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
+    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
+    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
+    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
 
     //Draw right (raytraced) view
     rightViewport.focusWithContext(gl);
@@ -248,6 +249,7 @@ function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
     u_mvpMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_mvpMat');
     u_modelMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_modelMatrix');
     u_normalMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_normalMat');
+    u_cameraPos_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_cameraPos');
     // Get the ID# for the a_Position variable in the graphics hardware
     var a_PositionID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Position');
     var a_NormalID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Normal');

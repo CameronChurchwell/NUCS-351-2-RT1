@@ -25,13 +25,16 @@ export class GraphicsObject {
         this.graphicsSystem = null;
     }
 
-    draw(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4, camera?: Camera, modelMatrixLoc?: WebGLUniformLocation, normalMatrixLoc?: WebGLUniformLocation) {
-        
+    draw(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4, camera?: Camera, modelMatrixLoc?: WebGLUniformLocation, normalMatrixLoc?: WebGLUniformLocation, cameraPosLoc?: WebGLUniformLocation) {
+        if (cameraPosLoc) {
+            let pos = camera.position.elements;
+            this.graphicsSystem?.gl_object.uniform3f(cameraPosLoc, pos[0], pos[1], pos[2]);
+        }
         if (modelMatrixLoc) {
             let reusableMatrix = this.reusableMatrix;
             reusableMatrix.copyFrom(sceneMatrix);
             reusableMatrix.concat(this.transformMatrix);
-            console.log(reusableMatrix.toString());
+            // console.log(reusableMatrix.toString());
             this.graphicsSystem?.gl_object.uniformMatrix4fv(modelMatrixLoc, false, reusableMatrix.elements);
         }
         if (normalMatrixLoc) {
