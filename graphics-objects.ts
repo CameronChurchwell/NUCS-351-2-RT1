@@ -1,5 +1,6 @@
 import { Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsObject } from "./lib/graphics-object";
+import { basicMatte } from "./lib/material";
 // import { makeBox } from "./vertex-objects/box-vertices";
 import { makeGroundGrid } from "./vertex-objects/ground-vertices";
 // import { makeMiniCube } from "./vertex-objects/minicube-vertices";
@@ -22,5 +23,5 @@ let bearVerts = require('./vertex-objects/bear-normal-vertices.json');
 export let bearGraphicsObject = new GraphicsObject(bearVerts, WebGL2RenderingContext.TRIANGLES, 7);
 
 let sphereVerts = require('./vertex-objects/sphere-normal-vertices.json');
-export let sphereGraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([-3, 10, 0]));
+export let sphereGraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([-3, 10, 0]), basicMatte);
 export let sphere1GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([3, 10, 0]));

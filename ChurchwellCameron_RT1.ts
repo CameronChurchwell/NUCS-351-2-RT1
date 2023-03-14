@@ -9,7 +9,8 @@ import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { Material } from "./lib/material";
+import { basicMaterial, basicMatte, Material } from "./lib/material";
+import { Light } from "./lib/light";
 
 let resolution = 512;
 var img = new ImageBuffer(resolution, resolution);
@@ -29,6 +30,7 @@ var rightViewport: Viewport;
 var perspective: Perspective
 var camera: Camera;
 var tracer: Tracer;
+var lights;
 
 var inputCtx: InputContextManager;
 
@@ -42,20 +44,19 @@ var u_Sampler_loc;
 var u_normalMat_loc;
 var u_modelMat_loc;
 var u_cameraPos_loc;
+var u_material_locs = {};
+
+const numLights = 2;
+var u_light_locs = [];
+for (let i=0; i<numLights; i++) {
+    u_light_locs.push({});
+}
 
 var gs: GraphicsSystem;
 
 
 function main() {
     //materials
-    let basicMaterial = new Material();
-    let basicMatte = new Material(
-        new Uint8Array([255, 255, 255]),
-        new Uint8Array([255, 255, 255]),
-        new Uint8Array([0, 0, 0]),
-        1,
-        0
-    )
 
     let groundPlane = new GridPlaneGeometry(
         new Vector3([0, 0, -1]),
@@ -110,7 +111,7 @@ function main() {
     let globalScene = new CompositeGeometry([
         // teapot1,
         teapot0,
-        bear0,
+        // bear0,
         sphere,
         sphere1,
         groundPlane,
@@ -146,7 +147,22 @@ function main() {
         rightViewport.height = canvas.height;
 
         perspective.aspect = canvas.width/2/canvas.height;
-    })
+    });
+
+    lights = [
+        new Light(
+            new Vector3([0, 0, 5]),
+            new Float32Array([0.1, 0.1, 0.1]),
+            new Float32Array([0.75, 0.75, 0.75]),
+            new Float32Array([0.5, 0.5, 0.5])
+        ),
+        new Light(
+            new Vector3([5, 8, 5]),
+            new Float32Array([0, 0, 0]),
+            new Float32Array([0, 0.75, 0]),
+            new Float32Array([0, 0.5, 0])
+        )
+    ]
 
 
     camera = new Camera(
@@ -155,7 +171,7 @@ function main() {
         new Vector3([0, 1, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 1, 1.0);
+    tracer = new Tracer(camera, img, globalScene, gl, 1, 1.0, lights);
 
     inputCtx = new InputContextManager([
         camera, tracer
@@ -230,12 +246,24 @@ function draw(gl: WebGL2RenderingContextStrict) {
     leftViewport.focusWithContext(gl);
     rasterizedShader.useWithContext(gl);
     updateLocationsRasterized(gl); //update uniform locations
+    for (let i=0; i<numLights; i++) {
+        let light = lights[i];
+        let light_locs = u_light_locs[i];
+        let p = light.position.elements;
+        let a = light.ambient;
+        let d = light.diffuse;
+        let s = light.specular;
+        gl.uniform4f(light_locs['position'], p[0], p[1], p[2], 1.0);
+        gl.uniform3f(light_locs['ambient'], a[0], a[1], a[2]);
+        gl.uniform3f(light_locs['diffuse'], d[0], d[1], d[2]);
+        gl.uniform3f(light_locs['specular'], s[0], s[1], s[2]);
+    }
     // camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
-    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
-    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
-    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc);
+    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
+    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
+    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
+    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
 
     //Draw right (raytraced) view
     rightViewport.focusWithContext(gl);
@@ -250,6 +278,19 @@ function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
     u_modelMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_modelMatrix');
     u_normalMat_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_normalMat');
     u_cameraPos_loc = rasterizedShader.getUniformLocationInContext(gl, 'u_cameraPos');
+
+    u_material_locs['ambient'] = rasterizedShader.getUniformLocationInContext(gl, 'u_material.ambient');
+    u_material_locs['diffuse'] = rasterizedShader.getUniformLocationInContext(gl, 'u_material.diffuse');
+    u_material_locs['specular'] = rasterizedShader.getUniformLocationInContext(gl, 'u_material.specular');
+    u_material_locs['shiny'] = rasterizedShader.getUniformLocationInContext(gl, 'u_material.shiny');
+
+    for (let i=0; i<numLights; i++) {
+        u_light_locs[i]['position'] = rasterizedShader.getUniformLocationInContext(gl, `u_lights[${i}].position`); 
+        u_light_locs[i]['ambient'] = rasterizedShader.getUniformLocationInContext(gl, `u_lights[${i}].ambient`);
+        u_light_locs[i]['diffuse'] = rasterizedShader.getUniformLocationInContext(gl, `u_lights[${i}].diffuse`);
+        u_light_locs[i]['specular'] = rasterizedShader.getUniformLocationInContext(gl, `u_lights[${i}].specular`);
+    }
+
     // Get the ID# for the a_Position variable in the graphics hardware
     var a_PositionID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Position');
     var a_NormalID = rasterizedShader.getAttributeLocationInContext(gl, 'a_Normal');

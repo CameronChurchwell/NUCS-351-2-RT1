@@ -29,3 +29,12 @@ export class Material {
         color[2] = Math.min(color[2] + this.ambient[2] * light.ambient[2] + this.diffuse[2] * light.diffuse[2] * nDotL + this.specular[2] * light.specular[2] * specular, 255);
     }
 }
+
+export let basicMaterial = new Material();
+export let basicMatte = new Material(
+    new Uint8Array([255, 255, 255]),
+    new Uint8Array([255, 255, 255]),
+    new Uint8Array([0, 0, 0]),
+    1,
+    0
+)

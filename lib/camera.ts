@@ -109,7 +109,7 @@ export class Camera {
         }
     }
 
-    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0, numReflections: number = 1) {
+    traceGeometry(geomObject: Geometry, img: ImageBuffer, AA: number = 1, jitter: number = 0, numReflections: number = 1, lights: Light[]) {
         let rayGen = this.makeRayGenerator(img.width, img.height, AA, jitter);
         let AANumSquares = AA * AA;
         let average = new Uint8Array([0, 0, 0]);
@@ -121,20 +121,6 @@ export class Camera {
         let lightVec: Vector3 = new Vector3();
         let normal: Vector3 = new Vector3();
         let mirrorReflection: Vector3 = new Vector3();
-        let lights: Light[] = [
-            new Light(
-                new Vector3([0, 0, 5]),
-                new Float32Array([0.1, 0.1, 0.1]),
-                new Float32Array([0.75, 0.75, 0.75]),
-                new Float32Array([0.5, 0.5, 0.5])
-            ),
-            new Light(
-                new Vector3([5, 8, 5]),
-                new Float32Array([0, 0, 0]),
-                new Float32Array([0, 0.75, 0]),
-                new Float32Array([0, 0.5, 0])
-            )
-        ]
         let otherColor = new Uint8Array(3);
         let otherMaterial: Material = new Material();
         let epsilon = 1e-3;

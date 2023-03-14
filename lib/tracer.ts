@@ -33,7 +33,7 @@ export class Tracer {
     trace() {
         console.log('begin tracing');
         const start = Date.now();
-        this.camera.traceGeometry(this.geometry, this.img, this.AA, this.jitter, this.numReflections);
+        this.camera.traceGeometry(this.geometry, this.img, this.AA, this.jitter, this.numReflections, this.lights);
         this.gl.texSubImage2D(
             this.gl.TEXTURE_2D,
             0,
