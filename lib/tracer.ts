@@ -3,9 +3,9 @@ import { Camera } from "./camera";
 import { Vector3 } from "./cuon-matrix-quat03";
 import { Geometry } from "./geometry";
 import { Light } from "./light";
-import { CallbackMap } from "./user-input";
+import { CallbackMap, InputReciever } from "./user-input";
 
-export class Tracer {
+export class Tracer implements InputReciever {
     camera: Camera;
     img: ImageBuffer;
     geometry: Geometry;

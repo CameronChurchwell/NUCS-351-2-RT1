@@ -4,7 +4,7 @@ import { bearGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphere
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
-import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, SphereGeometry} from "./lib/geometry";
+import { DiscGeometry, GridPlaneGeometry, MeshGeometry, CompositeGeometry, SphereGeometry, Geometry} from "./lib/geometry";
 import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
@@ -30,7 +30,13 @@ var rightViewport: Viewport;
 var perspective: Perspective
 var camera: Camera;
 var tracer: Tracer;
-var lights;
+var lights: Light[];
+
+type Scene = [GraphicsSystem, Geometry];
+
+var scenes: Scene[] = [];
+var currentScene: number = 0;
+var rtgs: GraphicsSystem;
 
 var inputCtx: InputContextManager;
 
@@ -51,9 +57,6 @@ var u_light_locs = [];
 for (let i=0; i<numLights; i++) {
     u_light_locs.push({});
 }
-
-var gs: GraphicsSystem;
-
 
 function main() {
     //materials
@@ -105,17 +108,6 @@ function main() {
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
     let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000, basicMaterial);
     let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000, basicMaterial);
-    let globalScene = new CompositeGeometry([
-        // teapot1,
-        teapot0,
-        // bear0,
-        sphere,
-        sphere1,
-        groundPlane,
-        // disc,
-        // disc1,
-        // disc2,
-    ]);
 
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
@@ -167,30 +159,41 @@ function main() {
         new Vector3([0, 1, 0]).normalize(),
         perspective
     );
-    tracer = new Tracer(camera, img, globalScene, gl, 1, 1.0, lights);
 
+    scenes.push([
+        new GraphicsSystem(gl, [
+            groundGraphicsObject,
+            teapotGraphicsObject,
+            sphereGraphicsObject,
+            sphere1GraphicsObject,
+        ]),
+        new CompositeGeometry([
+            teapot0,
+            sphere,
+            sphere1,
+            groundPlane,
+        ])
+    ]);
+
+    //create graphics system for ray tracing texture
+    rtgs = new GraphicsSystem(gl, [textureGraphicsObject]);
+
+    // Create tracer object
+    tracer = new Tracer(camera, img, scenes[0][1], gl, 1, 1.0, lights);
+    // Initialize shaders
+    rasterizedShader.createInContext(gl);
+    raytracedShader.createInContext(gl);
+
+    //User input managing
     inputCtx = new InputContextManager([
         camera, tracer
     ]);
     inputCtx.activate();
 
-    gs = new GraphicsSystem(gl, [
-        groundGraphicsObject,
-        teapotGraphicsObject,
-        sphereGraphicsObject,
-        sphere1GraphicsObject,
-        bearGraphicsObject,
-        textureGraphicsObject,
-    ]);
-    gs.initVertexBuffer();
-
+    //generate all callbacks
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
     window.addEventListener("keyup", inputCtx.generateCallback("keyUp"), false);
     window.addEventListener("keypress", inputCtx.generateCallback("keyPress"), false);
-
-    // Initialize shaders
-    rasterizedShader.createInContext(gl);
-    raytracedShader.createInContext(gl);
 
     //Configre texture and sampler
     u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
@@ -241,6 +244,8 @@ function draw(gl: WebGL2RenderingContextStrict) {
     //Draw left (rasterized) view
     leftViewport.focusWithContext(gl);
     rasterizedShader.useWithContext(gl);
+    let sceneGS = scenes[currentScene][0];
+    gl.bindBuffer(gl.ARRAY_BUFFER, sceneGS.vertexBufferLoc);
     updateLocationsRasterized(gl); //update uniform locations
     for (let i=0; i<numLights; i++) {
         let light = lights[i];
@@ -256,14 +261,12 @@ function draw(gl: WebGL2RenderingContextStrict) {
     }
     // camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
-    groundGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
-    teapotGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
-    sphere1GraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
-    sphereGraphicsObject.draw(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
+    scenes[currentScene][0].drawAll(u_mvpMat_loc, mvpMat, camera, u_modelMat_loc, u_normalMat_loc, u_cameraPos_loc, u_material_locs);
 
     //Draw right (raytraced) view
     rightViewport.focusWithContext(gl);
     raytracedShader.useWithContext(gl);
+    gl.bindBuffer(gl.ARRAY_BUFFER, rtgs.vertexBufferLoc);
     updateLocationsRaytraced(gl);
     gl.uniform1i(u_Sampler_loc, 0);
     textureGraphicsObject.draw();
@@ -312,6 +315,7 @@ function updateLocationsRasterized(gl: WebGL2RenderingContextStrict) {
 
 function updateLocationsRaytraced(gl: WebGL2RenderingContextStrict) {
     //TODO getting these positions might be slow (it will be slow)
+    tracer.geometry = scenes[currentScene][1];
     var a_PositionID = raytracedShader.getAttributeLocationInContext(gl, 'a_Position');
     var a_TexCoordID = raytracedShader.getAttributeLocationInContext(gl, 'a_TexCoord');
     gl.vertexAttribPointer(

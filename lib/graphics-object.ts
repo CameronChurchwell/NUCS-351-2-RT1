@@ -29,7 +29,10 @@ export class GraphicsObject {
     }
 
     draw(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4, camera?: Camera, modelMatrixLoc?: WebGLUniformLocation, normalMatrixLoc?: WebGLUniformLocation, cameraPosLoc?: WebGLUniformLocation, materialLocs?) {
-        let gl = this.graphicsSystem!.gl_object;
+        let gs = this.graphicsSystem!;
+        let gl = gs.gl_object;
+        gl.bindBuffer(gl.ARRAY_BUFFER, gs.vertexBufferLoc);
+
         if (materialLocs) {
             let m = this.material;
             let a = m.ambient;

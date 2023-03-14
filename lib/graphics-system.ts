@@ -1,10 +1,13 @@
 /// <reference path="../node_modules/webgl-strict-types/index.d.ts" />
+import { Camera } from "./camera";
+import { Matrix4 } from "./cuon-matrix-quat03";
 import { GraphicsObject } from "./graphics-object";
 
 export class GraphicsSystem {
     graphicsObjectArray: Array<InstanceType<typeof GraphicsObject>>;
     gl_object: WebGL2RenderingContextStrict;
     numGraphicsObjects: number;
+    offset: number;
     
     vertexArrayLengths: Array<number>;
     vertexArrayOffsets: Array<number>;
@@ -40,14 +43,25 @@ export class GraphicsSystem {
             console.error('Failed to create the vertex buffer object');
         }
         this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, this.vertexBufferLoc);
-    }
-
-    initVertexBuffer() {
         let allVertices = new Float32Array(this.totalVertexEntryLength);
         for (let i = 0; i < this.numGraphicsObjects; i++) {
             allVertices.set(this.graphicsObjectArray[i].vertexArray, this.vertexArrayOffsets[i]);
         }
         this.gl_object.bufferData(this.gl_object.ARRAY_BUFFER, allVertices, this.gl_object.DYNAMIC_DRAW);
+
+        this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, null);
+        // this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, this.vertexBufferLoc);
+    }
+
+    initVertexBuffer() {
+        this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, this.vertexBufferLoc);
+        let allVertices = new Float32Array(this.totalVertexEntryLength);
+        for (let i = 0; i < this.numGraphicsObjects; i++) {
+            allVertices.set(this.graphicsObjectArray[i].vertexArray, this.vertexArrayOffsets[i]);
+        }
+        this.gl_object.bufferData(this.gl_object.ARRAY_BUFFER, allVertices, this.gl_object.DYNAMIC_DRAW);
+
+        this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, null);
     }
 
     add(go: GraphicsObject) {
@@ -67,7 +81,8 @@ export class GraphicsSystem {
         return this.vertexArrayOffsets[index]/this.graphicsObjectArray[0].floatsPerVertex;
     }
 
-    draw(index) {
+    draw(index: number) {
+        this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, this.vertexBufferLoc);
         let graphicsObject = this.graphicsObjectArray[index];
         let floatsPerVertex = graphicsObject.floatsPerVertex;
         this.gl_object.drawArrays(
@@ -75,6 +90,13 @@ export class GraphicsSystem {
             this.vertexArrayOffsets[index] / floatsPerVertex,
             this.vertexArrayLengths[index] / floatsPerVertex
         );
+        this.gl_object.bindBuffer(this.gl_object.ARRAY_BUFFER, null);
+    }
+
+    drawAll(transformMatrixLoc?: WebGLUniformLocation, sceneMatrix?: Matrix4, camera?: Camera, modelMatrixLoc?: WebGLUniformLocation, normalMatrixLoc?: WebGLUniformLocation, cameraPosLoc?: WebGLUniformLocation, materialLocs?) {
+        for (let graphicsObject of this.graphicsObjectArray) {
+            graphicsObject.draw(transformMatrixLoc, sceneMatrix, camera, modelMatrixLoc, normalMatrixLoc, cameraPosLoc, materialLocs);
+        }
     }
 
 }
