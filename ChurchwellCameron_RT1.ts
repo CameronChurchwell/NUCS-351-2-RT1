@@ -102,10 +102,7 @@ function main() {
         1,
         basicMaterial
     );
-    // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]), Math.floor(teapotGraphicsObject.vertexArray.length / 7 / 2 / 3));
-    // let mesh = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 0, 0]));
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
-    // let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), Infinity);
     let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000, basicMaterial);
     let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000, basicMaterial);
     let globalScene = new CompositeGeometry([
@@ -123,7 +120,6 @@ function main() {
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
     var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
-    // var gl = getWebGLContext(canvas) as any as WebGL2RenderingContextStrict;
 
     gl.enable(gl.DEPTH_TEST); //disabled is default
 
