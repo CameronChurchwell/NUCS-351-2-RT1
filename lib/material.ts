@@ -37,4 +37,42 @@ export let basicMatte = new Material(
     new Uint8Array([0, 0, 0]),
     1,
     0
+);
+
+export let mirrorRed = new Material(
+    new Uint8Array([255, 0, 0]),
+    new Uint8Array([255, 0, 0]),
+    new Uint8Array([255, 0, 0]),
+    10,
+    0.8
+);
+
+export let mirrorBlue = new Material(
+    new Uint8Array([127, 127, 255]),
+    new Uint8Array([127, 127, 255]),
+    new Uint8Array([127, 127, 255]),
+    10,
+    0.8
+);
+
+export let metalGreen = new Material(
+    new Uint8Array([31, 255, 31]),
+    new Uint8Array([31, 255, 31]),
+    new Uint8Array([31, 255, 31]),
+    10,
+    0.5
+)
+
+export let metalPurple = new Material(
+    new Uint8Array([127, 31, 127]),
+    new Uint8Array([127, 31, 127]),
+    new Uint8Array([127, 31, 127]),
+    10,
+    0.5
+)
+
+export let basicRed = new Material(
+    new Uint8Array([255, 31, 31]),
+    new Uint8Array([255, 31, 31]),
+    new Uint8Array([255, 31, 31])
 )

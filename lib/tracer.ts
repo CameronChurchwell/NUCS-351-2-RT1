@@ -71,6 +71,7 @@ export class Tracer implements InputReciever {
                     this.jitter = 0;
                 }
                 document.getElementById("jitter").innerHTML = this.jitter.toString();
+                break;
             case "KeyM":
                 this.numReflections++;
                 document.getElementById("reflections").innerHTML = this.numReflections.toString();

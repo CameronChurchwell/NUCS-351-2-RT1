@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { bearGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphereGraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { bearGraphicsObject, bunnyGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphere1GraphicsObject1, sphere2GraphicsObject, sphere3GraphicsObject, sphereGraphicsObject, teapot1GraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -9,7 +9,7 @@ import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { basicMaterial, basicMatte, Material } from "./lib/material";
+import { basicMaterial, basicMatte, basicRed, Material, metalGreen, metalPurple, mirrorBlue, mirrorRed } from "./lib/material";
 import { Light } from "./lib/light";
 
 let resolution = 512;
@@ -32,7 +32,7 @@ var camera: Camera;
 var tracer: Tracer;
 var lights: Light[];
 
-type Scene = [GraphicsSystem, Geometry];
+type Scene = [GraphicsSystem, Geometry, Light[]];
 
 var scenes: Scene[] = [];
 var currentScene: number = 0;
@@ -105,9 +105,20 @@ function main() {
         1,
         basicMaterial
     );
+    let sphere2 = new SphereGeometry(
+        new Vector3([0, 8, 0]),
+        1,
+        mirrorRed
+    );
+    let sphere3 = new SphereGeometry(
+        new Vector3([-3, 10, 0]),
+        1,
+        mirrorBlue
+    );
     let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
-    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 6, 0]), 1000, basicMaterial);
-    let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([2, 7, 0]), 1000, basicMaterial);
+    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 4, 1.0]), 1000, metalPurple);
+    let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([0, 3, 0.0]), 1000, mirrorBlue);
+    let bunny0 = new MeshGeometry(bunnyGraphicsObject.vertexArray, bunnyGraphicsObject.floatsPerVertex, new Vector3([1.5, 5, 0]), 1000, basicRed);
 
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
@@ -137,21 +148,16 @@ function main() {
         perspective.aspect = canvas.width/2/canvas.height;
     });
 
-    lights = [
-        new Light(
-            new Vector3([0, 0, 5]),
-            new Float32Array([0.1, 0.1, 0.1]),
-            new Float32Array([0.75, 0.75, 0.75]),
-            new Float32Array([0.5, 0.5, 0.5])
-        ),
-        new Light(
-            new Vector3([5, 8, 5]),
-            new Float32Array([0, 0, 0]),
-            new Float32Array([0, 0.75, 0]),
-            new Float32Array([0, 0.5, 0])
-        )
-    ]
+    canvas.width = innerWidth - 16;
+    canvas.height = innerHeight * 0.6;
 
+    leftViewport.width = canvas.width/2;
+    leftViewport.height = canvas.height;
+    rightViewport.width = canvas.width/2;
+    rightViewport.xOffset = canvas.width/2;
+    rightViewport.height = canvas.height;
+
+    perspective.aspect = canvas.width/2/canvas.height;
 
     camera = new Camera(
         new Vector3([0, 0, 1]),
@@ -172,8 +178,80 @@ function main() {
             sphere,
             sphere1,
             groundPlane,
-        ])
+        ]),
+        [
+            new Light(
+                new Vector3([0, 0, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+            new Light(
+                new Vector3([5, 8, 5]),
+                new Float32Array([0, 0, 0]),
+                new Float32Array([0, 0.75, 0]),
+                new Float32Array([0, 0.5, 0])
+            )
+        ]
     ]);
+
+    scenes.push([
+        new GraphicsSystem(gl, [
+            groundGraphicsObject,
+            bearGraphicsObject,
+            teapot1GraphicsObject,
+            bunnyGraphicsObject
+        ]),
+        new CompositeGeometry([
+            bear0,
+            teapot1,
+            bunny0,
+            groundPlane
+        ]),
+        [
+            new Light(
+                new Vector3([0, 0, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+            new Light(
+                new Vector3([0, 10, 0]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([1.0, 1.0, 1.0]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+        ]
+    ]);
+
+    scenes.push([
+        new GraphicsSystem(gl, [
+            groundGraphicsObject,
+            sphere3GraphicsObject,
+            sphere1GraphicsObject1,
+            sphere2GraphicsObject
+        ]),
+        new CompositeGeometry([
+            sphere3,
+            sphere1,
+            sphere2,
+            groundPlane
+        ]),
+        [
+            new Light(
+                new Vector3([0, 0, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+            new Light(
+                new Vector3([0, 10, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+        ]
+    ])
 
     //create graphics system for ray tracing texture
     rtgs = new GraphicsSystem(gl, [textureGraphicsObject]);
@@ -194,6 +272,8 @@ function main() {
     window.addEventListener("keydown", inputCtx.generateCallback("keyDown"), false);
     window.addEventListener("keyup", inputCtx.generateCallback("keyUp"), false);
     window.addEventListener("keypress", inputCtx.generateCallback("keyPress"), false);
+    var radios = document.querySelectorAll('input[type=radio][name="scene_select"]');
+    radios.forEach(radio => radio.addEventListener('change', () => currentScene=+(<HTMLInputElement>radio).value));
 
     //Configre texture and sampler
     u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
@@ -247,6 +327,7 @@ function draw(gl: WebGL2RenderingContextStrict) {
     let sceneGS = scenes[currentScene][0];
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneGS.vertexBufferLoc);
     updateLocationsRasterized(gl); //update uniform locations
+    let lights = scenes[currentScene][2];
     for (let i=0; i<numLights; i++) {
         let light = lights[i];
         let light_locs = u_light_locs[i];
@@ -268,6 +349,7 @@ function draw(gl: WebGL2RenderingContextStrict) {
     raytracedShader.useWithContext(gl);
     gl.bindBuffer(gl.ARRAY_BUFFER, rtgs.vertexBufferLoc);
     updateLocationsRaytraced(gl);
+    tracer.lights = scenes[currentScene][2];
     gl.uniform1i(u_Sampler_loc, 0);
     textureGraphicsObject.draw();
 }
