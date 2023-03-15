@@ -10,8 +10,39 @@ export class ShaderProgram {
         this.fragment = fragment;
     }
 
-    createInContext(gl: WebGL2RenderingContextStrict) {
-        let program = createProgram(gl, this.vertex, this.fragment);
+    createInContext(gl: WebGL2RenderingContextStrict, transformFeedbackVaryingNames?: string[]) {
+        // let program = createProgram(gl, this.vertex, this.fragment);
+        //create shaders
+        const vertex = gl.createShader(gl.VERTEX_SHADER);
+        const fragment = gl.createShader(gl.FRAGMENT_SHADER);
+
+        //add sources
+        gl.shaderSource(vertex, this.vertex);
+        gl.shaderSource(fragment, this.fragment);
+
+        //compile
+        gl.compileShader(vertex);
+        gl.compileShader(fragment);
+
+        //create program
+        const program = gl.createProgram();
+
+        //attach shaders to program
+        gl.attachShader(program, vertex);
+        gl.attachShader(program, fragment);
+
+        //transform feedback
+        if (transformFeedbackVaryingNames) {
+            gl.transformFeedbackVaryings(
+                program,
+                transformFeedbackVaryingNames,
+                gl.SEPARATE_ATTRIBS
+            );
+        }
+
+        //link program
+        gl.linkProgram(program);
+
         if (!program) {
             throw 'Failed to create program!';
         }

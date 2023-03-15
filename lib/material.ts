@@ -76,3 +76,11 @@ export let basicRed = new Material(
     new Uint8Array([255, 31, 31]),
     new Uint8Array([255, 31, 31])
 )
+
+export let perfectMirror = new Material(
+    new Uint8Array([255, 255, 255]),
+    new Uint8Array([255, 255, 255]),
+    new Uint8Array([255, 255, 255]),
+    20,
+    1.0
+)

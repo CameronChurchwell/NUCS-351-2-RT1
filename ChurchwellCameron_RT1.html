@@ -10,17 +10,17 @@
     </canvas> 
 	<br> 
     Anti-Aliasing amount:
-    <p id="AA">
+    <div id="AA">
         Change with O and P!
-    </p>
+    </div>
     Jitter amount (width of sampling subtile, 1.0 is typical):
-    <p id="jitter">
+    <div id="jitter">
         Cycle through with J!
-    </p>
+    </div>
     Number of reflections:
-    <p id="reflections">
+    <div id="reflections">
         Change with N and M
-    </p>
+    </div>
     Scene:
     <div>
         <form id="scene_select">
@@ -30,7 +30,20 @@
             <label for="select_1">scene1</label>
             <input type="radio" id="select_2" name="scene_select" value=2>
             <label for="select_2">scene2</label>
+            <input type="radio" id="select_3" name="scene_select" value=3>
+            <label for="select_3">scene3</label>
+            <input type="radio" id="select_4" name="scene_select" value=4>
+            <label for="select_4">scene4</label>
             <!-- <input type="radio" id="select_3" name="scene_select" value="3"> -->
+        </form>
+    </div>
+    Lights:
+    <div>
+        <form id="lights_control">
+            <input type="checkbox" id="light_0" name="lights_control" value="0" checked="checked" aria-checked="checked">
+            <label for="light_0">light0</label>
+            <input type="checkbox" id="light_1" name="lights_control" value="1" checked="checked" aria-checked="checked">
+            <label for="light_1">light1</label>
         </form>
     </div>
     <script src="build/build.js"></script>

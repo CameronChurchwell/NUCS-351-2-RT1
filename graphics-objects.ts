@@ -1,6 +1,6 @@
 import { Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsObject } from "./lib/graphics-object";
-import { basicMaterial, basicMatte, basicRed, metalGreen, metalPurple, mirrorBlue, mirrorRed } from "./lib/material";
+import { basicMaterial, basicMatte, basicRed, metalGreen, metalPurple, mirrorBlue, mirrorRed, perfectMirror } from "./lib/material";
 // import { makeBox } from "./vertex-objects/box-vertices";
 import { makeGroundGrid } from "./vertex-objects/ground-vertices";
 // import { makeMiniCube } from "./vertex-objects/minicube-vertices";
@@ -17,7 +17,8 @@ export let textureGraphicsObject = new GraphicsObject(textureVerts, WebGL2Render
 
 // let teapotVerts = require('./vertex-objects/teapot-vertices.json');
 let teapotVerts = require('./vertex-objects/teapot-normal-vertices.json');
-export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 8, 0]));
+export let teapotGraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 8, 0]), basicMatte);
+export let teapot0GraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 8, 0]));
 export let teapot1GraphicsObject = new GraphicsObject(teapotVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 4, 1.0]), metalPurple);
 
 let bearVerts = require('./vertex-objects/bear-normal-vertices.json');
@@ -33,3 +34,7 @@ export let sphere1GraphicsObject = new GraphicsObject(sphereVerts, WebGL2Renderi
 export let sphere1GraphicsObject1 = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([3, 10, 0]));
 export let sphere2GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 8, 0]), mirrorRed);
 export let sphere3GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([-3, 10, 0]), mirrorBlue);
+
+export let sphere4GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([0, 5, 0]), perfectMirror);
+export let sphere5GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([-3, -4, 0]), basicMaterial);
+export let sphere6GraphicsObject = new GraphicsObject(sphereVerts, WebGL2RenderingContext.TRIANGLES, 7, new Vector3([4, -3, 0]), basicMaterial);

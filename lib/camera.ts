@@ -138,6 +138,9 @@ export class Camera {
                         color.set(blank); //color is blank until lit
                         material = intersect[1].hit(intersect);
                         for (let light of lights) { //iterate lights
+                            if (!light.enabled) {
+                                continue;
+                            }
                             //get light vector
                             lightVec.copyFrom(light.position);
                             lightVec.subtractInPlace(intersect[0]);

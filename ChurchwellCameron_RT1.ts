@@ -1,6 +1,6 @@
 import { Matrix4, Vector3 } from "./lib/cuon-matrix-quat03";
 import { GraphicsSystem } from "./lib/graphics-system";
-import { bearGraphicsObject, bunnyGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphere1GraphicsObject1, sphere2GraphicsObject, sphere3GraphicsObject, sphereGraphicsObject, teapot1GraphicsObject, teapotGraphicsObject, textureGraphicsObject } from "./graphics-objects";
+import { bearGraphicsObject, bunnyGraphicsObject, groundGraphicsObject, sphere1GraphicsObject, sphere1GraphicsObject1, sphere2GraphicsObject, sphere3GraphicsObject, sphere4GraphicsObject, sphere5GraphicsObject, sphere6GraphicsObject, sphereGraphicsObject, teapot1GraphicsObject, teapot0GraphicsObject, textureGraphicsObject, teapotGraphicsObject } from "./graphics-objects";
 import { Camera } from "./lib/camera";
 import { InputContextManager } from "./lib/user-input";
 import { ShaderProgram } from "./lib/shader-program";
@@ -9,7 +9,7 @@ import { ImageBuffer } from "./lib/buffer";
 import { Perspective } from "./lib/perspective";
 import { Viewport } from "./lib/viewport";
 import { Tracer } from "./lib/tracer";
-import { basicMaterial, basicMatte, basicRed, Material, metalGreen, metalPurple, mirrorBlue, mirrorRed } from "./lib/material";
+import { basicMaterial, basicMatte, basicRed, Material, metalGreen, metalPurple, mirrorBlue, mirrorRed, perfectMirror } from "./lib/material";
 import { Light } from "./lib/light";
 
 let resolution = 512;
@@ -115,14 +115,102 @@ function main() {
         1,
         mirrorBlue
     );
-    let teapot0 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
-    let teapot1 = new MeshGeometry(teapotGraphicsObject.vertexArray, teapotGraphicsObject.floatsPerVertex, new Vector3([0, 4, 1.0]), 1000, metalPurple);
+
+    let sphere4 = new SphereGeometry(
+        new Vector3([0, 5, 0]),
+        1,
+        perfectMirror
+    );
+
+    let sphere5 = new SphereGeometry(
+        new Vector3([-3, -4, 0]),
+        1,
+        basicMaterial
+    );
+
+    let sphere6 = new SphereGeometry(
+        new Vector3([4, -3, 0]),
+        1,
+        basicMaterial
+    );
+
+    let teapot = new MeshGeometry(teapot0GraphicsObject.vertexArray, teapot0GraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMatte);
+    let teapot0 = new MeshGeometry(teapot0GraphicsObject.vertexArray, teapot0GraphicsObject.floatsPerVertex, new Vector3([0, 8, 0]), 1000, basicMaterial);
+    let teapot1 = new MeshGeometry(teapot0GraphicsObject.vertexArray, teapot0GraphicsObject.floatsPerVertex, new Vector3([0, 4, 1.0]), 1000, metalPurple);
     let bear0 = new MeshGeometry(bearGraphicsObject.vertexArray, bearGraphicsObject.floatsPerVertex, new Vector3([0, 3, 0.0]), 1000, mirrorBlue);
     let bunny0 = new MeshGeometry(bunnyGraphicsObject.vertexArray, bunnyGraphicsObject.floatsPerVertex, new Vector3([1.5, 5, 0]), 1000, basicRed);
 
     // Retrieve <canvas> element
     var canvas = <HTMLCanvasElement> document.getElementById('webgl');
     var gl = canvas!.getContext("webgl2", { preserveDrawingBuffer: true}) as any as WebGL2RenderingContextStrict;
+
+    // // Test gpgpu raytracing stuff
+    // const width = 512
+    // let raygenSrc = [
+    //     require('./shaders/rt-shaders/raygen/vertex.glsl'),
+    //     require('./shaders/rt-shaders/raygen/fragment.glsl')
+    // ];
+    // let raygenProgram = new ShaderProgram(raygenSrc[0], raygenSrc[1]);
+    // raygenProgram.createInContext(gl, ['ray']);
+    // raygenProgram.useWithContext(gl);
+    // let locations = {};
+    // let uniforms = ['center', 'dx', 'dy', 'strafeDirection', 'upDirection', 'width'];
+    // for (let u of uniforms) {
+    //     locations[u] = raygenProgram.getUniformLocationInContext(gl, u);
+    // }
+
+    
+    // //create transform feedbacks
+    // const transformFeedback = gl.createTransformFeedback();
+    // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
+    // const rayBuffer = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, rayBuffer);
+    // gl.bufferData(gl.ARRAY_BUFFER, width*width*3*4, gl.DYNAMIC_DRAW);
+    // gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, rayBuffer);
+    // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    
+    // let pointlessBuffer = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, pointlessBuffer);
+    // gl.bufferData(gl.ARRAY_BUFFER, width*width, gl.DYNAMIC_DRAW);
+    
+    
+    // //INVOCATION
+    // //setup
+    // gl.enable(gl.RASTERIZER_DISCARD);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, pointlessBuffer);
+    // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
+    // gl.beginTransformFeedback(gl.POINTS);
+
+
+    // //uniforms
+    // gl.uniform3f(locations['center'], 1.0, 0.0, 0.0);
+    // gl.uniform3f(locations['strafeDirection'], 0.0, 1.0, 0.0);
+    // gl.uniform3f(locations['upDirection'], 0.0, 0.0, 1.0);
+    // gl.uniform1f(locations['dx'], 0.01);
+    // gl.uniform1f(locations['dy'], 0.01);
+    // gl.uniform1i(locations['width'], width);
+
+    // //compute
+    // gl.drawArrays(gl.POINTS, 0, width*width);
+
+    // //teardown
+    // gl.endTransformFeedback();
+    // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+    // //print results
+    // let results = new Float32Array(width*width*3);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, rayBuffer);
+    // gl.getBufferSubData(
+    //     gl.ARRAY_BUFFER,
+    //     0,
+    //     results
+    // );
+
+    // console.log(results);
+    // return;
+    //TODO maybe in the future I'll do GPGPU
 
     gl.enable(gl.DEPTH_TEST); //disabled is default
 
@@ -169,7 +257,32 @@ function main() {
     scenes.push([
         new GraphicsSystem(gl, [
             groundGraphicsObject,
-            teapotGraphicsObject,
+            teapotGraphicsObject
+        ]),
+        new CompositeGeometry([
+            teapot,
+            groundPlane
+        ]),
+        [
+            new Light(
+                new Vector3([-5, 8, 0]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([1.0, 0.5, 0.5]),
+                new Float32Array([0.5, 0.5, 0.5])
+            ),
+            new Light(
+                new Vector3([5, 8, 0]),
+                new Float32Array([0, 0, 0]),
+                new Float32Array([0.5, 0.5, 1.0]),
+                new Float32Array([0.5, 0.5, 0.5])
+            )
+        ]
+    ])
+
+    scenes.push([
+        new GraphicsSystem(gl, [
+            groundGraphicsObject,
+            teapot0GraphicsObject,
             sphereGraphicsObject,
             sphere1GraphicsObject,
         ]),
@@ -241,17 +354,46 @@ function main() {
             new Light(
                 new Vector3([0, 0, 5]),
                 new Float32Array([0.1, 0.1, 0.1]),
-                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([0.4, 0.4, 1.0]),
                 new Float32Array([0.5, 0.5, 0.5])
             ),
             new Light(
-                new Vector3([0, 10, 5]),
+                new Vector3([3, 0, 5]),
                 new Float32Array([0.1, 0.1, 0.1]),
-                new Float32Array([0.75, 0.75, 0.75]),
+                new Float32Array([1.0, 0.4, 0.4]),
                 new Float32Array([0.5, 0.5, 0.5])
             ),
         ]
-    ])
+    ]);
+
+    scenes.push([
+        new GraphicsSystem(gl, [
+            groundGraphicsObject,
+            sphere4GraphicsObject,
+            sphere5GraphicsObject,
+            sphere6GraphicsObject
+        ]),
+        new CompositeGeometry([
+            sphere4,
+            sphere5,
+            sphere6,
+            groundPlane
+        ]),
+        [
+            new Light(
+                new Vector3([0, 0, 5]),
+                new Float32Array([0.1, 0.1, 0.1]),
+                new Float32Array([1.0, 1.0, 1.0]),
+                new Float32Array([0.25, 0.25, 0.25])
+            ),
+            new Light(
+                new Vector3([0, 0, 0]),
+                new Float32Array([0, 0, 0]),
+                new Float32Array([0, 0, 0]),
+                new Float32Array([0, 0, 0])
+            ),
+        ]
+    ]);
 
     //create graphics system for ray tracing texture
     rtgs = new GraphicsSystem(gl, [textureGraphicsObject]);
@@ -274,6 +416,9 @@ function main() {
     window.addEventListener("keypress", inputCtx.generateCallback("keyPress"), false);
     var radios = document.querySelectorAll('input[type=radio][name="scene_select"]');
     radios.forEach(radio => radio.addEventListener('change', () => currentScene=+(<HTMLInputElement>radio).value));
+    var checkboxes = document.querySelectorAll('input[type=checkbox][name="lights_control"]');
+    checkboxes.forEach(checkbox => checkbox.addEventListener('change',
+        () => scenes.forEach(scene => scene[2][(<HTMLInputElement>checkbox).value].enabled = (<HTMLInputElement>checkbox).checked)));
 
     //Configre texture and sampler
     u_Sampler_loc = raytracedShader.getUniformLocationInContext(gl, 'u_Sampler');
@@ -331,14 +476,21 @@ function draw(gl: WebGL2RenderingContextStrict) {
     for (let i=0; i<numLights; i++) {
         let light = lights[i];
         let light_locs = u_light_locs[i];
-        let p = light.position.elements;
-        let a = light.ambient;
-        let d = light.diffuse;
-        let s = light.specular;
-        gl.uniform4f(light_locs['position'], p[0], p[1], p[2], 1.0);
-        gl.uniform3f(light_locs['ambient'], a[0], a[1], a[2]);
-        gl.uniform3f(light_locs['diffuse'], d[0], d[1], d[2]);
-        gl.uniform3f(light_locs['specular'], s[0], s[1], s[2]);
+        if (light.enabled) {
+            let p = light.position.elements;
+            let a = light.ambient;
+            let d = light.diffuse;
+            let s = light.specular;
+            gl.uniform4f(light_locs['position'], p[0], p[1], p[2], 1.0);
+            gl.uniform3f(light_locs['ambient'], a[0], a[1], a[2]);
+            gl.uniform3f(light_locs['diffuse'], d[0], d[1], d[2]);
+            gl.uniform3f(light_locs['specular'], s[0], s[1], s[2]);
+        } else {
+            gl.uniform4f(light_locs['position'], 0, 0, 0, 0);
+            gl.uniform3f(light_locs['ambient'], 0, 0, 0);
+            gl.uniform3f(light_locs['diffuse'], 0, 0, 0);
+            gl.uniform3f(light_locs['specular'], 0, 0, 0);
+        }
     }
     // camera.applyTo(mvpMat);
 	gl.uniformMatrix4fv(u_mvpMat_loc, false, mvpMat.elements);
